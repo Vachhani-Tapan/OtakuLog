@@ -1,5 +1,6 @@
 import 'package:otakulog/data/models/manga_model.dart';
 import 'package:otakulog/domain/entities/manga.dart';
+import 'package:otakulog/features/search/models/search_filters.dart';
 
 class MangaMapper {
   static MangaEntity fromJson(Map<String, dynamic> json) {
@@ -9,7 +10,8 @@ class MangaMapper {
 
     // Title parsing with fallbacks
     final titleMap = attributes['title'] as Map? ?? {};
-    final title = titleMap['en'] ?? (titleMap.values.isNotEmpty ? titleMap.values.first : 'Unknown Title');
+    final title = titleMap['en'] ??
+        (titleMap.values.isNotEmpty ? titleMap.values.first : 'Unknown Title');
 
     // Cover parsing with defensive checks
     String coverFileName = '';
@@ -37,11 +39,13 @@ class MangaMapper {
 
     // Description parsing
     final descMap = attributes['description'] as Map? ?? {};
-    final description = descMap['en'] ?? (descMap.values.isNotEmpty ? descMap.values.first : null);
+    final description = descMap['en'] ??
+        (descMap.values.isNotEmpty ? descMap.values.first : null);
 
     // Metadata
     final contentRating = attributes['contentRating'] ?? 'safe';
-    final createdAtStr = attributes['createdAt'] ?? DateTime.now().toIso8601String();
+    final createdAtStr =
+        attributes['createdAt'] ?? DateTime.now().toIso8601String();
     final updatedAtStr = attributes['updatedAt'] ?? createdAtStr;
 
     return MangaEntity(
@@ -51,6 +55,9 @@ class MangaMapper {
       totalChapters: _parseLastChapter(attributes['lastChapter']),
       currentChapter: 0,
       status: MangaStatus.reading,
+      mangaCategory: _mapOriginalLanguageToCategory(
+        attributes['originalLanguage'] as String?,
+      ),
       rating: null,
       genres: genres,
       description: description,
@@ -58,6 +65,18 @@ class MangaMapper {
       createdAt: DateTime.parse(createdAtStr),
       updatedAt: DateTime.parse(updatedAtStr),
     );
+  }
+
+  static MangaCategoryFilter _mapOriginalLanguageToCategory(String? language) {
+    switch (language) {
+      case 'ko':
+        return MangaCategoryFilter.manhwa;
+      case 'zh':
+      case 'zh-hk':
+        return MangaCategoryFilter.manhua;
+      default:
+        return MangaCategoryFilter.manga;
+    }
   }
 
   static int _parseLastChapter(dynamic lastChapter) {
@@ -81,6 +100,7 @@ class MangaMapper {
       isAdult: model.isAdult,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
+      mangaCategory: model.mangaCategory,
     );
   }
 
@@ -92,6 +112,7 @@ class MangaMapper {
       ..totalChapters = entity.totalChapters
       ..currentChapter = entity.currentChapter
       ..status = _mapStatusToModel(entity.status)
+      ..mangaCategory = entity.mangaCategory
       ..rating = entity.rating
       ..genres = entity.genres
       ..description = entity.description

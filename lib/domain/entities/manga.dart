@@ -1,3 +1,5 @@
+import 'package:otakulog/features/search/models/search_filters.dart';
+
 import 'trackable_content.dart';
 
 enum MangaStatus { reading, completed, dropped, onHold }
@@ -30,6 +32,8 @@ class MangaEntity implements TrackableContent {
   @override
   int get totalProgress => totalChapters;
 
+  final MangaCategoryFilter mangaCategory;
+
   MangaEntity({
     required this.id,
     required this.title,
@@ -43,6 +47,7 @@ class MangaEntity implements TrackableContent {
     required this.isAdult,
     required this.createdAt,
     required this.updatedAt,
+    this.mangaCategory = MangaCategoryFilter.manga,
   });
 
   MangaEntity copyWith({
@@ -57,6 +62,7 @@ class MangaEntity implements TrackableContent {
     bool? isAdult,
     DateTime? createdAt,
     DateTime? updatedAt,
+    MangaCategoryFilter? mangaCategory,
   }) {
     return MangaEntity(
       id: id,
@@ -71,6 +77,7 @@ class MangaEntity implements TrackableContent {
       isAdult: isAdult ?? this.isAdult,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      mangaCategory: mangaCategory ?? this.mangaCategory,
     );
   }
 }

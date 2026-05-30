@@ -47,34 +47,40 @@ const MangaModelSchema = CollectionSchema(
       name: r'isAdult',
       type: IsarType.bool,
     ),
-    r'rating': PropertySchema(
+    r'mangaCategory': PropertySchema(
       id: 6,
+      name: r'mangaCategory',
+      type: IsarType.byte,
+      enumMap: _MangaModelmangaCategoryEnumValueMap,
+    ),
+    r'rating': PropertySchema(
+      id: 7,
       name: r'rating',
       type: IsarType.double,
     ),
     r'remoteId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'remoteId',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'status',
       type: IsarType.byte,
       enumMap: _MangaModelstatusEnumValueMap,
     ),
     r'title': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalChapters': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'totalChapters',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -144,12 +150,13 @@ void _mangaModelSerialize(
   writer.writeString(offsets[3], object.description);
   writer.writeStringList(offsets[4], object.genres);
   writer.writeBool(offsets[5], object.isAdult);
-  writer.writeDouble(offsets[6], object.rating);
-  writer.writeString(offsets[7], object.remoteId);
-  writer.writeByte(offsets[8], object.status.index);
-  writer.writeString(offsets[9], object.title);
-  writer.writeLong(offsets[10], object.totalChapters);
-  writer.writeDateTime(offsets[11], object.updatedAt);
+  writer.writeByte(offsets[6], object.mangaCategory.index);
+  writer.writeDouble(offsets[7], object.rating);
+  writer.writeString(offsets[8], object.remoteId);
+  writer.writeByte(offsets[9], object.status.index);
+  writer.writeString(offsets[10], object.title);
+  writer.writeLong(offsets[11], object.totalChapters);
+  writer.writeDateTime(offsets[12], object.updatedAt);
 }
 
 MangaModel _mangaModelDeserialize(
@@ -166,14 +173,17 @@ MangaModel _mangaModelDeserialize(
   object.genres = reader.readStringList(offsets[4]) ?? [];
   object.id = id;
   object.isAdult = reader.readBool(offsets[5]);
-  object.rating = reader.readDoubleOrNull(offsets[6]);
-  object.remoteId = reader.readString(offsets[7]);
+  object.mangaCategory =
+      _MangaModelmangaCategoryValueEnumMap[reader.readByteOrNull(offsets[6])] ??
+          MangaCategoryFilter.any;
+  object.rating = reader.readDoubleOrNull(offsets[7]);
+  object.remoteId = reader.readString(offsets[8]);
   object.status =
-      _MangaModelstatusValueEnumMap[reader.readByteOrNull(offsets[8])] ??
+      _MangaModelstatusValueEnumMap[reader.readByteOrNull(offsets[9])] ??
           MangaStatusModel.reading;
-  object.title = reader.readString(offsets[9]);
-  object.totalChapters = reader.readLong(offsets[10]);
-  object.updatedAt = reader.readDateTime(offsets[11]);
+  object.title = reader.readString(offsets[10]);
+  object.totalChapters = reader.readLong(offsets[11]);
+  object.updatedAt = reader.readDateTime(offsets[12]);
   return object;
 }
 
@@ -197,23 +207,39 @@ P _mangaModelDeserializeProp<P>(
     case 5:
       return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (_MangaModelmangaCategoryValueEnumMap[
+              reader.readByteOrNull(offset)] ??
+          MangaCategoryFilter.any) as P;
     case 7:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
       return (_MangaModelstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           MangaStatusModel.reading) as P;
-    case 9:
-      return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 11:
+      return (reader.readLong(offset)) as P;
+    case 12:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
 
+const _MangaModelmangaCategoryEnumValueMap = {
+  'any': 0,
+  'manga': 1,
+  'manhwa': 2,
+  'manhua': 3,
+};
+const _MangaModelmangaCategoryValueEnumMap = {
+  0: MangaCategoryFilter.any,
+  1: MangaCategoryFilter.manga,
+  2: MangaCategoryFilter.manhwa,
+  3: MangaCategoryFilter.manhua,
+};
 const _MangaModelstatusEnumValueMap = {
   'reading': 0,
   'completed': 1,
@@ -1104,6 +1130,62 @@ extension MangaModelQueryFilter
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      mangaCategoryEqualTo(MangaCategoryFilter value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mangaCategory',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      mangaCategoryGreaterThan(
+    MangaCategoryFilter value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mangaCategory',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      mangaCategoryLessThan(
+    MangaCategoryFilter value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mangaCategory',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      mangaCategoryBetween(
+    MangaCategoryFilter lower,
+    MangaCategoryFilter upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mangaCategory',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition> ratingIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1681,6 +1763,18 @@ extension MangaModelQuerySortBy
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> sortByMangaCategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mangaCategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> sortByMangaCategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mangaCategory', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QAfterSortBy> sortByRating() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'rating', Sort.asc);
@@ -1829,6 +1923,18 @@ extension MangaModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> thenByMangaCategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mangaCategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> thenByMangaCategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mangaCategory', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QAfterSortBy> thenByRating() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'rating', Sort.asc);
@@ -1942,6 +2048,12 @@ extension MangaModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QDistinct> distinctByMangaCategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'mangaCategory');
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QDistinct> distinctByRating() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'rating');
@@ -2022,6 +2134,13 @@ extension MangaModelQueryProperty
   QueryBuilder<MangaModel, bool, QQueryOperations> isAdultProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isAdult');
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaCategoryFilter, QQueryOperations>
+      mangaCategoryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'mangaCategory');
     });
   }
 

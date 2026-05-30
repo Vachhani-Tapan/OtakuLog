@@ -13,13 +13,26 @@ import 'package:otakulog/features/library/widgets/item_actions_sheet.dart';
 import 'package:otakulog/features/tracker/tracker_feedback.dart';
 import 'package:otakulog/features/tracker/tracker_notifier.dart';
 import 'package:otakulog/features/tracker/widgets/log_to_target_sheet.dart';
+import 'package:otakulog/features/search/models/search_filters.dart';
 
 enum LibraryFilter { all, anime, manga }
 
-enum LibrarySortOption { recentlyUpdated, recentlyLogged, titleAZ, titleZA, progressAsc, progressDesc, rating }
+enum LibrarySortOption {
+  recentlyUpdated,
+  recentlyLogged,
+  titleAZ,
+  titleZA,
+  progressAsc,
+  progressDesc,
+  rating
+}
 
-final libraryFilterProvider = StateProvider<LibraryFilter>((ref) => LibraryFilter.all);
-final librarySortProvider = StateProvider<LibrarySortOption>((ref) => LibrarySortOption.recentlyUpdated);
+final libraryFilterProvider =
+    StateProvider<LibraryFilter>((ref) => LibraryFilter.all);
+final librarySortProvider = StateProvider<LibrarySortOption>(
+    (ref) => LibrarySortOption.recentlyUpdated);
+final libraryMangaCategoryFilterProvider =
+    StateProvider<Set<MangaCategoryFilter>>((ref) => {});
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -29,9 +42,12 @@ class LibraryScreen extends ConsumerWidget {
     final combinedAsync = ref.watch(combinedLibraryProvider);
     final filter = ref.watch(libraryFilterProvider);
     final sort = ref.watch(librarySortProvider);
+    final mangaCategoryFilters = ref.watch(libraryMangaCategoryFilterProvider);
     final user = ref.watch(currentUserProvider).valueOrNull;
     final trackerState = ref.watch(trackerNotifierProvider);
-    final latestSessionByContent = ref.watch(latestSessionByContentProvider).valueOrNull ?? const <String, DateTime>{};
+    final latestSessionByContent =
+        ref.watch(latestSessionByContentProvider).valueOrNull ??
+            const <String, DateTime>{};
 
     return Scaffold(
       appBar: AppBar(
@@ -46,23 +62,32 @@ class LibraryScreen extends ConsumerWidget {
       body: Column(
         children: [
           _buildSegmentedControl(ref, filter),
+          _buildMangaCategoryFilters(
+            ref,
+            mangaCategoryFilters,
+          ),
           Expanded(
             child: combinedAsync.when(
               data: (list) {
-                final filteredList = _applySort(_applyFilter(list, filter), sort, latestSessionByContent);
+                final filteredList = _applySort(
+                    _applyFilter(list, filter, mangaCategoryFilters),
+                    sort,
+                    latestSessionByContent);
 
                 if (filteredList.isEmpty) {
                   return GTEmptyState(
                     icon: Icons.library_books_outlined,
                     title: 'Your Library is Empty',
-                    description: 'Search and add some content to track your progress.',
+                    description:
+                        'Search and add some content to track your progress.',
                     buttonLabel: 'GO TO SEARCH',
                     onButtonPressed: () => context.go('/search'),
                   );
                 }
 
                 final inProgress = filteredList.where(_isInProgress).toList();
-                final completed = filteredList.where((item) => !_isInProgress(item)).toList();
+                final completed =
+                    filteredList.where((item) => !_isInProgress(item)).toList();
 
                 return ListView(
                   padding: const EdgeInsets.all(16),
@@ -99,11 +124,27 @@ class LibraryScreen extends ConsumerWidget {
     );
   }
 
-  List<TrackableContent> _applyFilter(List<TrackableContent> items, LibraryFilter filter) {
+  List<TrackableContent> _applyFilter(
+    List<TrackableContent> items,
+    LibraryFilter filter,
+    Set<MangaCategoryFilter> mangaCategoryFilters,
+  ) {
     return items.where((item) {
-      if (filter == LibraryFilter.anime) return item is AnimeEntity;
-      if (filter == LibraryFilter.manga) return item is MangaEntity;
-      return true;
+      final matchesType = switch (filter) {
+        LibraryFilter.anime => item is AnimeEntity,
+        LibraryFilter.manga => item is MangaEntity,
+        LibraryFilter.all => true,
+      };
+
+      if (!matchesType) return false;
+
+      if (item is! MangaEntity || mangaCategoryFilters.isEmpty) {
+        return true;
+      }
+
+      return mangaCategoryFilters.contains(
+        item.mangaCategory,
+      );
     }).toList();
   }
 
@@ -126,16 +167,20 @@ class LibraryScreen extends ConsumerWidget {
         });
         break;
       case LibrarySortOption.titleAZ:
-        sorted.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        sorted.sort(
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
         break;
       case LibrarySortOption.titleZA:
-        sorted.sort((a, b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
+        sorted.sort(
+            (a, b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
         break;
       case LibrarySortOption.progressAsc:
-        sorted.sort((a, b) => _progressPercent(a).compareTo(_progressPercent(b)));
+        sorted
+            .sort((a, b) => _progressPercent(a).compareTo(_progressPercent(b)));
         break;
       case LibrarySortOption.progressDesc:
-        sorted.sort((a, b) => _progressPercent(b).compareTo(_progressPercent(a)));
+        sorted
+            .sort((a, b) => _progressPercent(b).compareTo(_progressPercent(a)));
         break;
       case LibrarySortOption.rating:
         sorted.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
@@ -170,7 +215,70 @@ class LibraryScreen extends ConsumerWidget {
     );
   }
 
-  void _showSortSheet(BuildContext context, WidgetRef ref, LibrarySortOption currentSort) {
+  Widget _buildMangaCategoryFilters(
+    WidgetRef ref,
+    Set<MangaCategoryFilter> selectedFilters,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 4,
+      ),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          _buildCategoryChip(
+            ref,
+            selectedFilters,
+            MangaCategoryFilter.manga,
+            'Manga',
+          ),
+          _buildCategoryChip(
+            ref,
+            selectedFilters,
+            MangaCategoryFilter.manhwa,
+            'Manhwa',
+          ),
+          _buildCategoryChip(
+            ref,
+            selectedFilters,
+            MangaCategoryFilter.manhua,
+            'Manhua',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(
+    WidgetRef ref,
+    Set<MangaCategoryFilter> selectedFilters,
+    MangaCategoryFilter category,
+    String label,
+  ) {
+    return FilterChip(
+      label: Text(label),
+      selected: selectedFilters.contains(category),
+      onSelected: (selected) {
+        final updated = {...selectedFilters};
+
+        if (selected) {
+          updated.add(category);
+        } else {
+          updated.remove(category);
+        }
+
+        ref
+            .read(
+              libraryMangaCategoryFilterProvider.notifier,
+            )
+            .state = updated;
+      },
+    );
+  }
+
+  void _showSortSheet(
+      BuildContext context, WidgetRef ref, LibrarySortOption currentSort) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -182,13 +290,16 @@ class LibraryScreen extends ConsumerWidget {
               padding: EdgeInsets.all(16),
               child: Text(
                 'Sort by',
-                style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryText),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: AppTheme.primaryText),
               ),
             ),
             for (final option in LibrarySortOption.values)
               ListTile(
                 title: Text(_sortLabel(option)),
-                trailing: currentSort == option ? const Icon(Icons.check, color: AppTheme.accent) : null,
+                trailing: currentSort == option
+                    ? const Icon(Icons.check, color: AppTheme.accent)
+                    : null,
                 onTap: () {
                   ref.read(librarySortProvider.notifier).state = option;
                   Navigator.pop(sheetContext);
@@ -247,7 +358,8 @@ class LibraryScreen extends ConsumerWidget {
     final canLogMore = maxAllowedProgress == null
         ? item.totalProgress <= 0 || item.currentProgress < item.totalProgress
         : item.currentProgress < maxAllowedProgress;
-    final total = item.totalProgress > 0 ? item.totalProgress : (maxAllowedProgress ?? 0);
+    final total =
+        item.totalProgress > 0 ? item.totalProgress : (maxAllowedProgress ?? 0);
     final progressText = isAnime
         ? 'Ep ${item.currentProgress} / ${total > 0 ? total : '?'}'
         : 'Ch ${item.currentProgress} / ${total > 0 ? total : '?'}';
@@ -266,7 +378,8 @@ class LibraryScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GTCoverImage(
-                imageUrl: user?.blurCoverInPublic == true ? '' : item.coverImage,
+                imageUrl:
+                    user?.blurCoverInPublic == true ? '' : item.coverImage,
                 title: item.title,
                 width: 86,
                 height: 124,
@@ -291,14 +404,16 @@ class LibraryScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       progressText,
-                      style: const TextStyle(color: AppTheme.secondaryText, fontSize: 12),
+                      style: const TextStyle(
+                          color: AppTheme.secondaryText, fontSize: 12),
                     ),
                     const SizedBox(height: 8),
                     GTProgressBar(progress: progress, height: 6),
                     const SizedBox(height: 8),
                     Text(
                       statusText.toUpperCase(),
-                      style: const TextStyle(color: AppTheme.secondaryText, fontSize: 11),
+                      style: const TextStyle(
+                          color: AppTheme.secondaryText, fontSize: 11),
                     ),
                     if (releaseCap != null && item.totalProgress <= 0) ...[
                       const SizedBox(height: 6),
@@ -317,10 +432,13 @@ class LibraryScreen extends ConsumerWidget {
               SizedBox(
                 height: 40,
                 child: ElevatedButton(
-                  onPressed: isBusy || !canLogMore ? null : () => _quickLog(context, ref, item, user),
+                  onPressed: isBusy || !canLogMore
+                      ? null
+                      : () => _quickLog(context, ref, item, user),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    backgroundColor: isAnime ? AppTheme.accent : Colors.green[800],
+                    backgroundColor:
+                        isAnime ? AppTheme.accent : Colors.green[800],
                   ),
                   child: Text(
                     isBusy
@@ -414,7 +532,9 @@ class LibraryScreen extends ConsumerWidget {
         },
         onMarkCompleted: () async {
           Navigator.pop(sheetContext);
-          final result = await ref.read(trackerNotifierProvider.notifier).markCompleted(item, user: user);
+          final result = await ref
+              .read(trackerNotifierProvider.notifier)
+              .markCompleted(item, user: user);
           if (context.mounted) {
             await showTrackerFeedback(context, ref, result);
           }
@@ -425,7 +545,9 @@ class LibraryScreen extends ConsumerWidget {
         },
         onRemove: () async {
           Navigator.pop(sheetContext);
-          final result = await ref.read(trackerNotifierProvider.notifier).removeFromLibrary(item);
+          final result = await ref
+              .read(trackerNotifierProvider.notifier)
+              .removeFromLibrary(item);
           if (context.mounted) {
             await showTrackerFeedback(context, ref, result);
           }
@@ -468,7 +590,9 @@ class LibraryScreen extends ConsumerWidget {
           final maxAvailableProgress = snapshot.data;
           return LogToTargetSheet(
             content: item,
-            minutesPerUnit: item is AnimeEntity ? (user?.defaultAnimeWatchTime ?? 24) : (user?.avgChapterMinutes ?? 15),
+            minutesPerUnit: item is AnimeEntity
+                ? (user?.defaultAnimeWatchTime ?? 24)
+                : (user?.avgChapterMinutes ?? 15),
             maxAvailableProgress: maxAvailableProgress,
           );
         },
@@ -480,8 +604,12 @@ class LibraryScreen extends ConsumerWidget {
     await ref.read(localAnalyticsServiceProvider).track('log_to_target');
     ref.invalidate(analyticsSnapshotProvider);
     final result = item is AnimeEntity
-        ? await ref.read(trackerNotifierProvider.notifier).logAnimeToEpisode(item, target, user: user)
-        : await ref.read(trackerNotifierProvider.notifier).logMangaToChapter(item as MangaEntity, target, user: user);
+        ? await ref
+            .read(trackerNotifierProvider.notifier)
+            .logAnimeToEpisode(item, target, user: user)
+        : await ref
+            .read(trackerNotifierProvider.notifier)
+            .logMangaToChapter(item as MangaEntity, target, user: user);
     if (context.mounted) {
       await showTrackerFeedback(context, ref, result);
     }
@@ -495,24 +623,25 @@ class LibraryScreen extends ConsumerWidget {
     var selectedRating = item.rating ?? 0;
     final rating = await showDialog<double>(
       context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            backgroundColor: AppTheme.surface,
-            title: const Text(
-              'Update Rating',
-              style: TextStyle(
-                color: AppTheme.primaryText,
-                fontWeight: FontWeight.bold,
-              ),
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: const Text(
+            'Update Rating',
+            style: TextStyle(
+              color: AppTheme.primaryText,
+              fontWeight: FontWeight.bold,
             ),
-            content: StatefulBuilder(
-              builder: (context, setState) {
-                return Row(
+          ),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(5, (index) {
                   final star = index + 1;
                   return IconButton(
-                    onPressed: () => setState(() => selectedRating = star.toDouble()),
+                    onPressed: () =>
+                        setState(() => selectedRating = star.toDouble()),
                     icon: Icon(
                       selectedRating >= star ? Icons.star : Icons.star_border,
                       color: Colors.amber,
@@ -522,25 +651,27 @@ class LibraryScreen extends ConsumerWidget {
               );
             },
           ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: AppTheme.primaryText),
-                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppTheme.primaryText),
               ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(dialogContext, selectedRating),
-                child: const Text('Save'),
-              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, selectedRating),
+              child: const Text('Save'),
+            ),
           ],
         );
       },
     );
 
     if (rating == null) return;
-    final result = await ref.read(trackerNotifierProvider.notifier).updateRating(item, rating);
+    final result = await ref
+        .read(trackerNotifierProvider.notifier)
+        .updateRating(item, rating);
     if (context.mounted) {
       await showTrackerFeedback(context, ref, result);
     }
