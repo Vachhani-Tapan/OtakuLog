@@ -12,6 +12,9 @@ import 'package:otakulog/domain/repositories/session_repository.dart';
 import 'package:otakulog/domain/repositories/tracker_repository.dart';
 import 'package:otakulog/features/tracker/tracker_notifier.dart';
 
+//the release cap test for anime checks result!.message.contains('Only') a string-match assertion. 
+// If rename that message string it'll silently break the test. 
+
 class MockAnimeRepository extends Mock implements AnimeRepository {}
 
 class MockMangaRepository extends Mock implements MangaRepository {}
