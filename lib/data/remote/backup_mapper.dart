@@ -1,4 +1,5 @@
 import 'package:otakulog/data/local/retention_preferences_service.dart';
+import 'package:otakulog/domain/entities/activity.dart';
 import 'package:otakulog/domain/entities/anime.dart';
 import 'package:otakulog/domain/entities/manga.dart';
 import 'package:otakulog/domain/entities/trackable_content.dart';
@@ -11,12 +12,14 @@ class BackupPreview {
   final int libraryCount;
   final int sessionsCount;
   final String? profileName;
+  final int streaksCount;
 
   const BackupPreview({
     required this.exportedAt,
     required this.libraryCount,
     required this.sessionsCount,
     required this.profileName,
+    this.streaksCount = 0,
   });
 }
 
@@ -25,6 +28,7 @@ class BackupMapper {
     required UserEntity? profile,
     required List<TrackableContent> library,
     required List<UserSessionEntity> sessions,
+    required List<Activity> streaks,
     required RetentionPreferences retentionPreferences,
   }) {
     final exportedAt = DateTime.now();
@@ -36,6 +40,7 @@ class BackupMapper {
       library: library.map(_contentToJson).toList(),
       sessions: sessions.map(_sessionToJson).toList(),
       retentionPreferences: retentionPreferences.toJson(),
+      streaks: streaks.map(_streakToJson).toList(),
     );
   }
 
@@ -46,6 +51,7 @@ class BackupMapper {
       libraryCount: payload.library.length,
       sessionsCount: payload.sessions.length,
       profileName: profile?['name']?.toString(),
+      streaksCount: payload.streaks.length,
     );
   }
 
@@ -67,6 +73,28 @@ class BackupMapper {
     return payload.retentionPreferences == null
         ? const RetentionPreferences()
         : RetentionPreferences.fromJson(payload.retentionPreferences!);
+  }
+
+  List<Activity> streaksFromPayload(BackupPayload payload) {
+    return payload.streaks.map(_streakFromJson).toList();
+  }
+
+  Map<String, dynamic> _streakToJson(Activity streak) {
+    return {
+      'id': streak.id,
+      'date': streak.date.toIso8601String(),
+      'minutesWatched': streak.minutesWatched,
+      'minutesRead': streak.minutesRead,
+    };
+  }
+
+  Activity _streakFromJson(Map<String, dynamic> json) {
+    return Activity(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+      minutesWatched: (json['minutesWatched'] as num?)?.toInt() ?? 0,
+      minutesRead: (json['minutesRead'] as num?)?.toInt() ?? 0,
+    );
   }
 
   Map<String, dynamic> _userToJson(UserEntity user) {

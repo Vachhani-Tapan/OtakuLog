@@ -8,6 +8,7 @@ class BackupPayload {
   final List<Map<String, dynamic>> library;
   final List<Map<String, dynamic>> sessions;
   final Map<String, dynamic>? retentionPreferences;
+  final List<Map<String, dynamic>> streaks;
 
   const BackupPayload({
     this.schemaVersion = currentSchemaVersion,
@@ -17,6 +18,7 @@ class BackupPayload {
     required this.library,
     required this.sessions,
     required this.retentionPreferences,
+    this.streaks = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -28,6 +30,7 @@ class BackupPayload {
       'library': library,
       'sessions': sessions,
       'retentionPreferences': retentionPreferences,
+      'streaks': streaks,
     };
   }
 
@@ -47,6 +50,10 @@ class BackupPayload {
           .map((item) => item.cast<String, dynamic>())
           .toList(),
       retentionPreferences: (json['retentionPreferences'] as Map?)?.cast<String, dynamic>(),
+      streaks: (json['streaks'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => item.cast<String, dynamic>())
+          .toList(),
     );
   }
 }

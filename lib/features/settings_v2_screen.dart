@@ -16,6 +16,7 @@ import 'package:otakulog/features/cloud/models/backup_payload.dart';
 import 'package:otakulog/features/cloud/models/cloud_availability_state.dart';
 import 'package:otakulog/features/downloads/download_queue_notifier.dart';
 import 'package:otakulog/features/downloads/downloads_manager_screen.dart';
+import 'package:otakulog/core/services/local_backup_service.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -44,6 +45,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isBackingUp = false;
   bool _isRestoring = false;
   bool _isResettingLocalData = false;
+  bool _isExporting = false;
+  bool _isImporting = false;
 
   @override
   void dispose() {
@@ -171,6 +174,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _label('Offline'),
               const SizedBox(height: 10),
               _downloadsCard(ref),
+              const SizedBox(height: 20),
+              _localBackupRestoreCard(),
               const SizedBox(height: 24),
               _label('About'),
               const SizedBox(height: 10),
@@ -427,6 +432,318 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onPressed: _sendFeedback,
             icon: const Icon(Icons.mail_outline),
             label: const Text('SEND FEEDBACK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _localBackupRestoreCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.sd_storage_outlined, color: AppTheme.accent),
+              SizedBox(width: 8),
+              Text(
+                'Local Backup & Restore',
+                style: TextStyle(
+                  color: AppTheme.primaryText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Save your data to a secure local file, or import an existing backup. Streaks, logs, library, and settings are fully preserved.',
+            style: TextStyle(color: AppTheme.secondaryText, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isExporting ? null : _exportLocalBackup,
+                  icon: _isExporting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.upload_file_outlined),
+                  label: Text(_isExporting ? 'EXPORTING...' : 'EXPORT BACKUP'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isImporting ? null : _importLocalBackup,
+                  icon: _isImporting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.accent,
+                          ),
+                        )
+                      : const Icon(Icons.download_for_offline_outlined),
+                  label: Text(_isImporting ? 'IMPORTING...' : 'IMPORT BACKUP'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportLocalBackup() async {
+    setState(() => _isExporting = true);
+    try {
+      final success = await ref.read(localBackupServiceProvider).exportBackup();
+      if (success) {
+        _showMessage('Backup exported successfully');
+      }
+    } catch (e) {
+      _showErrorDialog('Export Failed', e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _importLocalBackup() async {
+    setState(() => _isImporting = true);
+    try {
+      final payload = await ref.read(localBackupServiceProvider).pickAndValidateBackup();
+      if (payload == null) return; // User cancelled
+
+      if (!mounted) return;
+
+      final preview = ref.read(backupMapperProvider).buildPreview(payload);
+      
+      final result = await _showRestoreOptionsDialog(payload, preview);
+      if (result == true) {
+        _showMessage('Backup restored successfully');
+        
+        ref.invalidate(currentUserProvider);
+        ref.invalidate(combinedLibraryProvider);
+        ref.invalidate(libraryAnimeProvider);
+        ref.invalidate(libraryMangaProvider);
+        ref.invalidate(allSessionsProvider);
+        ref.invalidate(recentSessionsProvider);
+        ref.invalidate(activityTimelineProvider);
+        ref.invalidate(dailyActivityProvider);
+        ref.invalidate(monthlyActivityProvider);
+        ref.invalidate(earliestActivityDateProvider);
+      }
+    } catch (e) {
+      _showErrorDialog('Validation Failed', e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isImporting = false);
+    }
+  }
+
+  Future<bool?> _showRestoreOptionsDialog(BackupPayload payload, BackupPreview preview) {
+    RestoreMode selectedMode = RestoreMode.merge;
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.backup_table_outlined, color: AppTheme.accent),
+              SizedBox(width: 8),
+              Text(
+                'Restore Backup',
+                style: TextStyle(color: AppTheme.primaryText, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Review the contents of the backup file:',
+                style: TextStyle(color: AppTheme.secondaryText, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('👤 Display Name: ${preview.profileName ?? "Pilot"}',
+                        style: const TextStyle(color: AppTheme.primaryText, height: 1.4)),
+                    Text('📅 Exported At: ${DateFormat('MMM d, yyyy - h:mm a').format(preview.exportedAt)}',
+                        style: const TextStyle(color: AppTheme.primaryText, height: 1.4)),
+                    Text('📚 Library: ${preview.libraryCount} items',
+                        style: const TextStyle(color: AppTheme.primaryText, height: 1.4)),
+                    Text('⏱️ Tracking: ${preview.sessionsCount} sessions',
+                        style: const TextStyle(color: AppTheme.primaryText, height: 1.4)),
+                    Text('🔥 Streaks: ${preview.streaksCount} days active',
+                        style: const TextStyle(color: AppTheme.primaryText, height: 1.4)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Select Restore Mode:',
+                style: TextStyle(
+                  color: AppTheme.primaryText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              RadioListTile<RestoreMode>(
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppTheme.accent,
+                value: RestoreMode.merge,
+                groupValue: selectedMode,
+                title: const Text('Merge with current data',
+                    style: TextStyle(color: AppTheme.primaryText, fontSize: 14)),
+                subtitle: const Text('Safely combines backup data with your local tracking history.',
+                    style: TextStyle(color: AppTheme.secondaryText, fontSize: 12)),
+                onChanged: (value) => setDialogState(() => selectedMode = value!),
+              ),
+              RadioListTile<RestoreMode>(
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppTheme.accent,
+                value: RestoreMode.replaceLocal,
+                groupValue: selectedMode,
+                title: const Text('Replace local data entirely',
+                    style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                subtitle: const Text('Erases current device logs and overrides with backup data.',
+                    style: TextStyle(color: AppTheme.secondaryText, fontSize: 12)),
+                onChanged: (value) => setDialogState(() => selectedMode = value!),
+              ),
+              if (selectedMode == RestoreMode.replaceLocal) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB71C1C).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFB71C1C).withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Warning: This will overwrite all your current logs. This action is irreversible!',
+                          style: TextStyle(color: Colors.redAccent, fontSize: 11, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('CANCEL', style: TextStyle(color: AppTheme.secondaryText)),
+            ),
+            ElevatedButton(
+              style: selectedMode == RestoreMode.replaceLocal
+                  ? ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB71C1C))
+                  : null,
+              onPressed: () async {
+                if (selectedMode == RestoreMode.replaceLocal) {
+                  final doubleConfirm = await showDialog<bool>(
+                    context: context,
+                    builder: (innerContext) => AlertDialog(
+                      backgroundColor: AppTheme.surface,
+                      title: const Text('Are you absolutely sure?', style: TextStyle(color: Colors.redAccent)),
+                      content: const Text(
+                        'This will delete all current watched/read histories, streaks, and settings on this device and replace them. Continue?',
+                        style: TextStyle(color: AppTheme.primaryText),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(innerContext, false),
+                          child: const Text('NO, CANCEL'),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB71C1C)),
+                          onPressed: () => Navigator.pop(innerContext, true),
+                          child: const Text('YES, REPLACE ALL'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (doubleConfirm != true) return;
+                }
+
+                if (!mounted) return;
+
+                Navigator.pop(dialogContext, false);
+                
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(color: AppTheme.accent),
+                  ),
+                );
+
+                try {
+                  await ref.read(localBackupServiceProvider).restoreBackup(payload, selectedMode);
+                  if (mounted) {
+                    Navigator.pop(context); // close loader
+                    Navigator.pop(dialogContext, true); // return success
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    Navigator.pop(context); // close loader
+                    _showErrorDialog('Restore Failed', e.toString().replaceAll('Exception: ', ''));
+                  }
+                }
+              },
+              child: const Text('RESTORE DATA'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text(title, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text(message, style: const TextStyle(color: AppTheme.primaryText)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('OK'),
           ),
         ],
       ),

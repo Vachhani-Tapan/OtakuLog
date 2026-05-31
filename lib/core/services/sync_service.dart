@@ -6,11 +6,13 @@ import 'package:otakulog/data/mappers/manga_mapper.dart';
 import 'package:otakulog/data/mappers/user_mapper.dart';
 import 'package:otakulog/data/mappers/user_session_mapper.dart';
 import 'package:otakulog/data/models/anime_model.dart';
+import 'package:otakulog/data/models/daily_activity.dart';
 import 'package:otakulog/data/models/manga_model.dart';
 import 'package:otakulog/data/models/user_model.dart';
 import 'package:otakulog/data/models/user_session_model.dart';
 import 'package:otakulog/data/remote/backup_mapper.dart';
 import 'package:otakulog/data/remote/backup_service.dart';
+import 'package:otakulog/domain/entities/activity.dart';
 import 'package:otakulog/domain/entities/anime.dart';
 import 'package:otakulog/domain/entities/manga.dart';
 import 'package:otakulog/domain/entities/trackable_content.dart';
@@ -44,10 +46,14 @@ class SyncService {
   }) async {
     try {
       final preferences = await retentionPreferencesService.load();
+      final streaks = (await isar.dailyActivitys.where().findAll())
+          .map((e) => e.toEntity())
+          .toList();
       final payload = backupMapper.exportPayload(
         profile: profile,
         library: library,
         sessions: sessions,
+        streaks: streaks,
         retentionPreferences: preferences,
       );
       await backupService.uploadBackup(payload);
@@ -100,12 +106,14 @@ class SyncService {
     final remoteLibrary = backupMapper.libraryFromPayload(remotePayload);
     final remoteSessions = backupMapper.sessionsFromPayload(remotePayload);
     final remotePreferences = backupMapper.retentionPreferencesFromPayload(remotePayload);
+    final remoteStreaks = backupMapper.streaksFromPayload(remotePayload);
 
     if (mode == RestoreMode.replaceLocal) {
       await _replaceLocal(
         profile: remoteProfile,
         library: remoteLibrary,
         sessions: remoteSessions,
+        streaks: remoteStreaks,
         retentionPreferences: remotePreferences,
       );
       return;
@@ -115,16 +123,19 @@ class SyncService {
     final localLibrary = await _loadLocalLibrary();
     final localSessions = await _loadLocalSessions();
     final localPreferences = await retentionPreferencesService.load();
+    final localStreaks = await _loadLocalStreaks();
 
     final mergedProfile = _mergeProfile(localProfile, remoteProfile);
     final mergedLibrary = _mergeLibrary(localLibrary, remoteLibrary);
     final mergedSessions = _mergeSessions(localSessions, remoteSessions);
     final mergedPreferences = _mergePreferences(localPreferences, remotePreferences);
+    final mergedStreaks = _mergeStreaks(localStreaks, remoteStreaks);
 
     await _replaceLocal(
       profile: mergedProfile,
       library: mergedLibrary,
       sessions: mergedSessions,
+      streaks: mergedStreaks,
       retentionPreferences: mergedPreferences,
     );
   }
@@ -133,6 +144,7 @@ class SyncService {
     required UserEntity? profile,
     required List<TrackableContent> library,
     required List<UserSessionEntity> sessions,
+    required List<Activity> streaks,
     required RetentionPreferences retentionPreferences,
   }) async {
     await isar.writeTxn(() async {
@@ -140,6 +152,7 @@ class SyncService {
       await isar.mangaModels.clear();
       await isar.userSessionModels.clear();
       await isar.userModels.clear();
+      await isar.dailyActivitys.clear();
 
       if (profile != null) {
         await isar.userModels.put(UserMapper.toModel(profile));
@@ -148,6 +161,11 @@ class SyncService {
       final animeModels = library.whereType<AnimeEntity>().map(AnimeMapper.toModel).toList();
       final mangaModels = library.whereType<MangaEntity>().map(MangaMapper.toModel).toList();
       final sessionModels = sessions.map(UserSessionMapper.toModel).toList();
+      final streakModels = streaks.map((streak) => DailyActivity()
+        ..date = streak.date
+        ..minutesWatched = streak.minutesWatched
+        ..minutesRead = streak.minutesRead
+      ).toList();
 
       if (animeModels.isNotEmpty) {
         await isar.animeModels.putAll(animeModels);
@@ -158,9 +176,46 @@ class SyncService {
       if (sessionModels.isNotEmpty) {
         await isar.userSessionModels.putAll(sessionModels);
       }
+      if (streakModels.isNotEmpty) {
+        await isar.dailyActivitys.putAll(streakModels);
+      }
     });
 
     await retentionPreferencesService.save(retentionPreferences);
+  }
+
+  Future<List<Activity>> _loadLocalStreaks() async {
+    final models = await isar.dailyActivitys.where().findAll();
+    return models.map((e) => e.toEntity()).toList();
+  }
+
+  List<Activity> _mergeStreaks(
+    List<Activity> local,
+    List<Activity> remote,
+  ) {
+    final merged = <DateTime, Activity>{
+      for (final item in local) DateTime(item.date.year, item.date.month, item.date.day): item,
+    };
+
+    for (final remoteItem in remote) {
+      final normalizedDate = DateTime(remoteItem.date.year, remoteItem.date.month, remoteItem.date.day);
+      final existing = merged[normalizedDate];
+      if (existing == null) {
+        merged[normalizedDate] = remoteItem;
+      } else {
+        merged[normalizedDate] = Activity(
+          id: existing.id,
+          date: normalizedDate,
+          minutesWatched: existing.minutesWatched > remoteItem.minutesWatched
+              ? existing.minutesWatched
+              : remoteItem.minutesWatched,
+          minutesRead: existing.minutesRead > remoteItem.minutesRead
+              ? existing.minutesRead
+              : remoteItem.minutesRead,
+        );
+      }
+    }
+    return merged.values.toList();
   }
 
   Future<UserEntity?> _loadLocalProfile() async {
