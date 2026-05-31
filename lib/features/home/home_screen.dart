@@ -331,10 +331,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildContinueSection(context, user, 'Continue Watching', anime,
-            '+1 Ep', trackerState, 'No anime in progress yet'),
+            '+1 Ep', trackerState, 'No anime in progress yet',Icons.play_circle_outline),
         const SizedBox(height: 24),
         _buildContinueSection(context, user, 'Continue Reading', manga, '+1 Ch',
-            trackerState, 'No manga in progress yet'),
+            trackerState, 'No manga in progress yet',Icons.menu_book_outlined),
         const SizedBox(height: 24),
         _buildSnapshotCards(items, sessions, dailyActivity, statsService),
       ],
@@ -349,6 +349,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     String quickLabel,
     TrackerState trackerState,
     String emptyTitle,
+    IconData emptyIcon,
   ) {
     items.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return Column(
@@ -357,7 +358,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         GTSectionHeader(title: title),
         if (items.isEmpty)
           GTEmptyState(
-            icon: Icons.play_circle_outline,
+            icon: emptyIcon,
             title: emptyTitle,
             description: 'Start something from Search to build this row.',
             buttonLabel: 'Browse',
