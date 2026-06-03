@@ -33,6 +33,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _chapterController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _webdavUrlController = TextEditingController();
+  final _webdavUsernameController = TextEditingController();
+  final _webdavPasswordController = TextEditingController();
+
   String _adultMode = 'off';
   String _searchMedium = 'anime';
   bool _blurCovers = false;
@@ -47,6 +51,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isResettingLocalData = false;
   bool _isExporting = false;
   bool _isImporting = false;
+  bool _isTestingWebdav = false;
+  bool _isWebdavSyncing = false;
+  bool? _webdavConnectionSuccess;
 
   @override
   void dispose() {
@@ -55,6 +62,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _chapterController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _webdavUrlController.dispose();
+    _webdavUsernameController.dispose();
+    _webdavPasswordController.dispose();
     super.dispose();
   }
 
@@ -176,6 +186,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _downloadsCard(ref),
               const SizedBox(height: 20),
               _localBackupRestoreCard(),
+              const SizedBox(height: 20),
+              _webdavSyncCard(prefsAsync.valueOrNull),
               const SizedBox(height: 24),
               _label('About'),
               const SizedBox(height: 10),
@@ -436,6 +448,347 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _webdavSyncCard(RetentionPreferences? prefs) {
+    final lastSynced = prefs?.webdavLastSyncedAt;
+    final lastError = prefs?.webdavLastError;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.cloud_queue_outlined, color: AppTheme.accent),
+              SizedBox(width: 8),
+              Text(
+                'WebDAV / Nextcloud Sync',
+                style: TextStyle(
+                  color: AppTheme.primaryText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Keep your database synchronized using private cloud storage. Connect to custom Nextcloud or WebDAV endpoints.',
+            style: TextStyle(color: AppTheme.secondaryText, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          _fieldLabel('Server URL'),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _webdavUrlController,
+            style: const TextStyle(color: AppTheme.primaryText),
+            decoration: _decoration('e.g. https://nextcloud.domain.com/remote.php/dav/files/user/'),
+          ),
+          const SizedBox(height: 12),
+          _fieldLabel('Username'),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _webdavUsernameController,
+            style: const TextStyle(color: AppTheme.primaryText),
+            decoration: _decoration('Enter your username'),
+          ),
+          const SizedBox(height: 12),
+          _fieldLabel('Password / App Token'),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _webdavPasswordController,
+            obscureText: true,
+            style: const TextStyle(color: AppTheme.primaryText),
+            decoration: _decoration('Enter app password or token'),
+          ),
+          const SizedBox(height: 16),
+          if (lastSynced != null) ...[
+            Text(
+              'Last synced: ${DateFormat('MMM d, yyyy - h:mm a').format(lastSynced)}',
+              style: const TextStyle(color: AppTheme.secondaryText, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (lastError != null && lastError.trim().isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFB71C1C).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFB71C1C).withOpacity(0.35)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Sync failed: $lastError',
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 12, height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isTestingWebdav ? null : _testWebdavConnection,
+                  icon: _isTestingWebdav
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.accent,
+                          ),
+                        )
+                      : (_webdavConnectionSuccess == true
+                          ? const Icon(Icons.check_circle_outline, color: Colors.green)
+                          : (_webdavConnectionSuccess == false
+                              ? const Icon(Icons.error_outline, color: Colors.redAccent)
+                              : const Icon(Icons.sync_alt_outlined))),
+                  label: Text(_isTestingWebdav ? 'TESTING...' : 'TEST CONNECTION'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isWebdavSyncing ? null : _showWebdavSyncConfirmDialog,
+                  icon: _isWebdavSyncing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.cloud_sync_outlined),
+                  label: Text(_isWebdavSyncing ? 'SYNCING...' : 'SYNC NOW'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _testWebdavConnection() async {
+    final url = _webdavUrlController.text.trim();
+    final user = _webdavUsernameController.text.trim();
+    final pass = _webdavPasswordController.text;
+
+    if (url.isEmpty || user.isEmpty || pass.isEmpty) {
+      _showErrorDialog('Missing Information', 'Please fill in all WebDAV connection details.');
+      return;
+    }
+
+    setState(() {
+      _isTestingWebdav = true;
+      _webdavConnectionSuccess = null;
+    });
+
+    try {
+      final success = await ref.read(webDavServiceProvider).testConnection(url, user, pass);
+      if (success) {
+        // Auto-save the credentials in settings
+        final prefs = await ref.read(retentionPreferencesProvider.future);
+        await ref.read(retentionPreferencesServiceProvider).save(
+              prefs.copyWith(
+                webdavUrl: url,
+                webdavUsername: user,
+                webdavPassword: pass,
+              ),
+            );
+        ref.invalidate(retentionPreferencesProvider);
+
+        setState(() => _webdavConnectionSuccess = true);
+        _showMessage('Connection test successful! Settings auto-saved.');
+      } else {
+        setState(() => _webdavConnectionSuccess = false);
+        _showErrorDialog('Connection Failed', 'Could not establish connection to server.');
+      }
+    } catch (e) {
+      setState(() => _webdavConnectionSuccess = false);
+      _showErrorDialog('Connection Failed', e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => _isTestingWebdav = false);
+      }
+    }
+  }
+
+  Future<void> _showWebdavSyncConfirmDialog() async {
+    final url = _webdavUrlController.text.trim();
+    final user = _webdavUsernameController.text.trim();
+    final pass = _webdavPasswordController.text;
+
+    if (url.isEmpty || user.isEmpty || pass.isEmpty) {
+      _showErrorDialog('Credentials Missing', 'Please configure your WebDAV credentials and test connection before syncing.');
+      return;
+    }
+
+    // Save credentials first to make sure they are active
+    final prefs = await ref.read(retentionPreferencesProvider.future);
+    await ref.read(retentionPreferencesServiceProvider).save(
+          prefs.copyWith(
+            webdavUrl: url,
+            webdavUsername: user,
+            webdavPassword: pass,
+          ),
+        );
+    ref.invalidate(retentionPreferencesProvider);
+
+    if (!mounted) return;
+
+    RestoreMode selectedMode = RestoreMode.merge;
+
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.cloud_sync_outlined, color: AppTheme.accent),
+              SizedBox(width: 8),
+              Text(
+                'WebDAV Sync Options',
+                style: TextStyle(color: AppTheme.primaryText, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Choose how remote cloud data should be integrated during sync down:',
+                style: TextStyle(color: AppTheme.secondaryText, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              RadioListTile<RestoreMode>(
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppTheme.accent,
+                value: RestoreMode.merge,
+                groupValue: selectedMode,
+                title: const Text('Merge remote backup (Recommended)',
+                    style: TextStyle(color: AppTheme.primaryText, fontSize: 14)),
+                subtitle: const Text('Intelligently blends cloud backup logs with local watch history.',
+                    style: TextStyle(color: AppTheme.secondaryText, fontSize: 12)),
+                onChanged: (value) => setDialogState(() => selectedMode = value!),
+              ),
+              RadioListTile<RestoreMode>(
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppTheme.accent,
+                value: RestoreMode.replaceLocal,
+                groupValue: selectedMode,
+                title: const Text('Replace local data entirely',
+                    style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                subtitle: const Text('Deletes current device library and forces overwrite with remote backup.',
+                    style: TextStyle(color: AppTheme.secondaryText, fontSize: 12)),
+                onChanged: (value) => setDialogState(() => selectedMode = value!),
+              ),
+              if (selectedMode == RestoreMode.replaceLocal) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB71C1C).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFB71C1C).withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Warning: This overrides local database entries. Be absolutely sure!',
+                          style: TextStyle(color: Colors.redAccent, fontSize: 11, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('CANCEL', style: TextStyle(color: AppTheme.secondaryText)),
+            ),
+            ElevatedButton(
+              style: selectedMode == RestoreMode.replaceLocal
+                  ? ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB71C1C))
+                  : null,
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('SYNC NOW'),
+            ),
+          ],
+        ),
+      ),
+    ).then((confirmed) {
+      if (confirmed == true) {
+        _executeWebdavSync(selectedMode);
+      }
+    });
+  }
+
+  Future<void> _executeWebdavSync(RestoreMode mode) async {
+    setState(() => _isWebdavSyncing = true);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppTheme.accent),
+      ),
+    );
+
+    try {
+      await ref.read(webDavServiceProvider).syncNow(mode: mode);
+      
+      if (mounted) {
+        Navigator.pop(context); // close loader dialog
+        _showMessage('Cloud sync complete!');
+
+        ref.invalidate(currentUserProvider);
+        ref.invalidate(combinedLibraryProvider);
+        ref.invalidate(libraryAnimeProvider);
+        ref.invalidate(libraryMangaProvider);
+        ref.invalidate(allSessionsProvider);
+        ref.invalidate(recentSessionsProvider);
+        ref.invalidate(activityTimelineProvider);
+        ref.invalidate(dailyActivityProvider);
+        ref.invalidate(monthlyActivityProvider);
+        ref.invalidate(earliestActivityDateProvider);
+        ref.invalidate(retentionPreferencesProvider);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // close loader dialog
+        _showErrorDialog('Sync Failed', e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isWebdavSyncing = false);
+      }
+    }
   }
 
   Widget _localBackupRestoreCard() {
@@ -866,6 +1219,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _blurCovers = user.blurCoverInPublic;
     _notificationsEnabled = prefs?.notificationsEnabled ?? true;
     _preferDataSaverDownloads = prefs?.preferDataSaverDownloads ?? true;
+    _webdavUrlController.text = prefs?.webdavUrl ?? '';
+    _webdavUsernameController.text = prefs?.webdavUsername ?? '';
+    _webdavPasswordController.text = prefs?.webdavPassword ?? '';
     _initialized = true;
   }
 
@@ -894,6 +1250,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               notificationsEnabled: _notificationsEnabled,
               preferDataSaverDownloads: _preferDataSaverDownloads,
               lastAppOpenedAtIso: DateTime.now().toIso8601String(),
+              webdavUrl: _webdavUrlController.text.trim(),
+              webdavUsername: _webdavUsernameController.text.trim(),
+              webdavPassword: _webdavPasswordController.text,
             ),
           );
 

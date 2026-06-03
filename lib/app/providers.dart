@@ -33,6 +33,7 @@ import 'package:otakulog/core/config/cloud_runtime.dart';
 import 'package:otakulog/core/services/reminder_service.dart';
 import 'package:otakulog/core/services/sync_service.dart';
 import 'package:otakulog/core/services/local_backup_service.dart';
+import 'package:otakulog/core/services/webdav_service.dart';
 import 'package:otakulog/core/services/wrapped_trigger_service.dart';
 import 'package:otakulog/features/activity_models.dart';
 import 'package:otakulog/features/cloud/models/cloud_availability_state.dart';
@@ -87,6 +88,18 @@ final syncServiceProvider = Provider<SyncService>((ref) {
 });
 final localBackupServiceProvider = Provider<LocalBackupService>((ref) {
   return LocalBackupService(
+    userRepository: ref.watch(userRepositoryProvider),
+    animeRepository: ref.watch(animeRepositoryProvider),
+    mangaRepository: ref.watch(mangaRepositoryProvider),
+    sessionRepository: ref.watch(sessionRepositoryProvider),
+    retentionPreferencesService: ref.watch(retentionPreferencesServiceProvider),
+    backupMapper: ref.watch(backupMapperProvider),
+    syncService: ref.watch(syncServiceProvider),
+    isar: IsarService.instance,
+  );
+});
+final webDavServiceProvider = Provider<WebDavService>((ref) {
+  return WebDavService(
     userRepository: ref.watch(userRepositoryProvider),
     animeRepository: ref.watch(animeRepositoryProvider),
     mangaRepository: ref.watch(mangaRepositoryProvider),
