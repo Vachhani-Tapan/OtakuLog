@@ -14,6 +14,7 @@ class MangaModel {
   late String coverImage;
   late int totalChapters;
   late int currentChapter;
+  late int rereadCount;
 
   @enumerated
   MangaCategoryFilter mangaCategory = MangaCategoryFilter.manga;

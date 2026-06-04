@@ -10,24 +10,25 @@ class AnimeModel {
   late String remoteId;
 
   late String title;
-  
+
   late String coverImage;
-  
+
   late int totalEpisodes;
-  
+
   late int currentEpisode;
+  late int rewatchCount;
 
   @enumerated
   late AnimeStatusModel status;
-  
+
   double? rating;
 
   late List<String> genres;
 
   String? description;
-  
+
   late DateTime createdAt;
-  
+
   late DateTime updatedAt;
 }
 

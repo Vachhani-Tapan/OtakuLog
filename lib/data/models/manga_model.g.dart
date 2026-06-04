@@ -63,24 +63,29 @@ const MangaModelSchema = CollectionSchema(
       name: r'remoteId',
       type: IsarType.string,
     ),
-    r'status': PropertySchema(
+    r'rereadCount': PropertySchema(
       id: 9,
+      name: r'rereadCount',
+      type: IsarType.long,
+    ),
+    r'status': PropertySchema(
+      id: 10,
       name: r'status',
       type: IsarType.byte,
       enumMap: _MangaModelstatusEnumValueMap,
     ),
     r'title': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalChapters': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'totalChapters',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -153,10 +158,11 @@ void _mangaModelSerialize(
   writer.writeByte(offsets[6], object.mangaCategory.index);
   writer.writeDouble(offsets[7], object.rating);
   writer.writeString(offsets[8], object.remoteId);
-  writer.writeByte(offsets[9], object.status.index);
-  writer.writeString(offsets[10], object.title);
-  writer.writeLong(offsets[11], object.totalChapters);
-  writer.writeDateTime(offsets[12], object.updatedAt);
+  writer.writeLong(offsets[9], object.rereadCount);
+  writer.writeByte(offsets[10], object.status.index);
+  writer.writeString(offsets[11], object.title);
+  writer.writeLong(offsets[12], object.totalChapters);
+  writer.writeDateTime(offsets[13], object.updatedAt);
 }
 
 MangaModel _mangaModelDeserialize(
@@ -178,12 +184,13 @@ MangaModel _mangaModelDeserialize(
           MangaCategoryFilter.any;
   object.rating = reader.readDoubleOrNull(offsets[7]);
   object.remoteId = reader.readString(offsets[8]);
+  object.rereadCount = reader.readLong(offsets[9]);
   object.status =
-      _MangaModelstatusValueEnumMap[reader.readByteOrNull(offsets[9])] ??
+      _MangaModelstatusValueEnumMap[reader.readByteOrNull(offsets[10])] ??
           MangaStatusModel.reading;
-  object.title = reader.readString(offsets[10]);
-  object.totalChapters = reader.readLong(offsets[11]);
-  object.updatedAt = reader.readDateTime(offsets[12]);
+  object.title = reader.readString(offsets[11]);
+  object.totalChapters = reader.readLong(offsets[12]);
+  object.updatedAt = reader.readDateTime(offsets[13]);
   return object;
 }
 
@@ -215,13 +222,15 @@ P _mangaModelDeserializeProp<P>(
     case 8:
       return (reader.readString(offset)) as P;
     case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
       return (_MangaModelstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           MangaStatusModel.reading) as P;
-    case 10:
-      return (reader.readString(offset)) as P;
     case 11:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 12:
+      return (reader.readLong(offset)) as P;
+    case 13:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1399,6 +1408,62 @@ extension MangaModelQueryFilter
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      rereadCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rereadCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      rereadCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rereadCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      rereadCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rereadCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition>
+      rereadCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rereadCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QAfterFilterCondition> statusEqualTo(
       MangaStatusModel value) {
     return QueryBuilder.apply(this, (query) {
@@ -1799,6 +1864,18 @@ extension MangaModelQuerySortBy
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> sortByRereadCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rereadCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> sortByRereadCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rereadCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QAfterSortBy> sortByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -1959,6 +2036,18 @@ extension MangaModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> thenByRereadCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rereadCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaModel, MangaModel, QAfterSortBy> thenByRereadCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rereadCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QAfterSortBy> thenByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -2067,6 +2156,12 @@ extension MangaModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<MangaModel, MangaModel, QDistinct> distinctByRereadCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rereadCount');
+    });
+  }
+
   QueryBuilder<MangaModel, MangaModel, QDistinct> distinctByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'status');
@@ -2153,6 +2248,12 @@ extension MangaModelQueryProperty
   QueryBuilder<MangaModel, String, QQueryOperations> remoteIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'remoteId');
+    });
+  }
+
+  QueryBuilder<MangaModel, int, QQueryOperations> rereadCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rereadCount');
     });
   }
 

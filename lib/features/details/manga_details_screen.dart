@@ -122,9 +122,9 @@ class _MangaDetailBody extends ConsumerWidget {
                           .toList(),
                     ),
                   const SizedBox(height: 24),
-                    if (stripHtmlTags(manga.description).isNotEmpty) ...[
-                      const Text(
-                        'DESCRIPTION',
+                  if (stripHtmlTags(manga.description).isNotEmpty) ...[
+                    const Text(
+                      'DESCRIPTION',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -133,10 +133,10 @@ class _MangaDetailBody extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                      Text(
-                        stripHtmlTags(manga.description),
-                        style: TextStyle(
-                          color: AppTheme.primaryText.withOpacity(0.8),
+                    Text(
+                      stripHtmlTags(manga.description),
+                      style: TextStyle(
+                        color: AppTheme.primaryText.withOpacity(0.8),
                         height: 1.5,
                       ),
                     ),
@@ -160,6 +160,8 @@ class _MangaDetailBody extends ConsumerWidget {
   }
 
   Widget _buildProgressSection(BuildContext context, WidgetRef ref) {
+    final isCompleted =
+        manga.totalChapters > 0 && manga.currentChapter >= manga.totalChapters;
     final user = ref.watch(currentUserProvider).valueOrNull;
     final releaseCap = ref
         .watch(
@@ -174,12 +176,11 @@ class _MangaDetailBody extends ConsumerWidget {
         .valueOrNull;
     final maxAllowedProgress =
         getMaxAllowedProgress(manga, releaseCap: releaseCap);
-    final isCapped =
-        maxAllowedProgress != null && manga.currentChapter >= maxAllowedProgress;
+    final isCapped = maxAllowedProgress != null &&
+        manga.currentChapter >= maxAllowedProgress;
     final unitMinutes = user?.avgChapterMinutes ?? 15;
-    final totalForDisplay = manga.totalChapters > 0
-        ? manga.totalChapters
-        : maxAllowedProgress;
+    final totalForDisplay =
+        manga.totalChapters > 0 ? manga.totalChapters : maxAllowedProgress;
     final progress = totalForDisplay != null && totalForDisplay > 0
         ? manga.currentChapter / totalForDisplay
         : 0.0;
@@ -207,6 +208,16 @@ class _MangaDetailBody extends ConsumerWidget {
             ),
           ],
         ),
+        if (manga.rereadCount > 0) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Reread ${manga.rereadCount} times',
+            style: const TextStyle(
+              color: AppTheme.secondaryText,
+              fontSize: 12,
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -303,12 +314,42 @@ class _MangaDetailBody extends ConsumerWidget {
               ),
             );
 
+            final rereadButton = SizedBox(
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final result = await ref
+                      .read(trackerNotifierProvider.notifier)
+                      .rereadManga(manga);
+
+                  if (context.mounted) {
+                    await showTrackerFeedback(context, ref, result);
+                  }
+
+                  ref.invalidate(mangaByIdProvider(itemId));
+                },
+                icon: const Icon(Icons.replay),
+                label: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('REREAD'),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent),
+                ),
+              ),
+            );
+
             if (isCompact) {
               return Column(
                 children: [
                   SizedBox(width: double.infinity, child: readButton),
                   const SizedBox(height: 12),
                   SizedBox(width: double.infinity, child: logButton),
+                  if (isCompleted) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(width: double.infinity, child: rereadButton),
+                  ],
                 ],
               );
             }
@@ -318,6 +359,10 @@ class _MangaDetailBody extends ConsumerWidget {
                 Expanded(child: readButton),
                 const SizedBox(width: 12),
                 Expanded(child: logButton),
+                if (isCompleted) ...[
+                  const SizedBox(width: 12),
+                  Expanded(child: rereadButton),
+                ],
               ],
             );
           },
@@ -374,46 +419,46 @@ class _MangaDetailBody extends ConsumerWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<MangaStatus>(
-            isDense: false,
-            value: manga.status,
-            isExpanded: true,
-            dropdownColor: AppTheme.surface,
-            style: const TextStyle(
-              color: AppTheme.primaryText,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-            iconEnabledColor: AppTheme.primaryText,
-            selectedItemBuilder: (context) {
-              return MangaStatus.values
-                  .map(
-                    (s) => Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        s.name.toUpperCase(),
-                        style: const TextStyle(
-                          color: AppTheme.primaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+          isDense: false,
+          value: manga.status,
+          isExpanded: true,
+          dropdownColor: AppTheme.surface,
+          style: const TextStyle(
+            color: AppTheme.primaryText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+          iconEnabledColor: AppTheme.primaryText,
+          selectedItemBuilder: (context) {
+            return MangaStatus.values
+                .map(
+                  (s) => Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      s.name.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppTheme.primaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  )
-                  .toList();
-            },
-            items: MangaStatus.values.map((s) {
-              return DropdownMenuItem(
-                value: s,
-                child: Text(
-                  s.name.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppTheme.primaryText,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
                   ),
+                )
+                .toList();
+          },
+          items: MangaStatus.values.map((s) {
+            return DropdownMenuItem(
+              value: s,
+              child: Text(
+                s.name.toUpperCase(),
+                style: const TextStyle(
+                  color: AppTheme.primaryText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-              );
-            }).toList(),
+              ),
+            );
+          }).toList(),
           onChanged: (newStatus) async {
             if (newStatus != null) {
               final saved = await ref.read(mangaRepositoryProvider).saveManga(
@@ -629,7 +674,9 @@ class _ChapterSelectorSheetState extends ConsumerState<_ChapterSelectorSheet>
         alignment: Alignment.bottomCenter,
         child: Container(
           width: isCompact ? double.infinity : null,
-          margin: isCompact ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 20),
+          margin: isCompact
+              ? EdgeInsets.zero
+              : const EdgeInsets.symmetric(horizontal: 20),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: isCompact ? screenWidth : 680,
@@ -663,149 +710,161 @@ class _ChapterSelectorSheetState extends ConsumerState<_ChapterSelectorSheet>
                       child: FutureBuilder<List<MangaDexChapter>>(
                         future: _chapterFeedFuture,
                         builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    if (offlineChapters.isNotEmpty) {
-                      return _OfflineChapterList(
-                        chapters: offlineChapters,
-                        downloadedIds: downloadedRecords
-                            .map((item) => item.chapterId)
-                            .toSet(),
-                        queueState: queueState,
-                        mangaId: widget.manga.id,
-                      );
-                    }
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: CircularProgressIndicator(color: AppTheme.accent),
-                      ),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    final message = 'No network or MangaDex is blocked right now.';
-                    if (offlineChapters.isNotEmpty) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$message Showing downloaded chapters instead.',
-                            style: const TextStyle(color: AppTheme.secondaryText),
-                          ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton.icon(
-                              onPressed: _retryChapterFeed,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Expanded(
-                            child: _OfflineChapterList(
-                              chapters: offlineChapters,
-                              downloadedIds: downloadedRecords
-                                  .map((item) => item.chapterId)
-                                  .toSet(),
-                              queueState: queueState,
-                              mangaId: widget.manga.id,
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'No network or MangaDex is blocked right now.',
-                            style: TextStyle(color: AppTheme.secondaryText),
-                          ),
-                          const SizedBox(height: 12),
-                          TextButton.icon(
-                            onPressed: _retryChapterFeed,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final chapters = snapshot.data ?? const [];
-                  if (chapters.isEmpty) {
-                    if (offlineChapters.isNotEmpty) {
-                      return _OfflineChapterList(
-                        chapters: offlineChapters,
-                        downloadedIds: downloadedRecords
-                            .map((item) => item.chapterId)
-                            .toSet(),
-                        queueState: queueState,
-                        mangaId: widget.manga.id,
-                      );
-                    }
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        'No readable English chapters found.',
-                        style: TextStyle(color: AppTheme.secondaryText),
-                      ),
-                    );
-                  }
-
-                  final downloadedIds =
-                      downloadsAsync.valueOrNull?.map((item) => item.chapterId).toSet() ??
-                          const <String>{};
-
-                  return ListView.separated(
-                    itemCount: chapters.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final chapter = chapters[index];
-                      final secondaryText = _chapterSecondaryText(chapter);
-                      final progress = queueState.progressFor(chapter.id);
-                      final isDownloaded = downloadedIds.contains(chapter.id);
-                      return ListTile(
-                        onTap: () => Navigator.pop(context, chapter),
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          _chapterPrimaryLabel(chapter),
-                          style: const TextStyle(color: AppTheme.primaryText),
-                        ),
-                        subtitle: secondaryText == null
-                            ? null
-                            : Text(
-                                secondaryText,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: AppTheme.secondaryText),
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            if (offlineChapters.isNotEmpty) {
+                              return _OfflineChapterList(
+                                chapters: offlineChapters,
+                                downloadedIds: downloadedRecords
+                                    .map((item) => item.chapterId)
+                                    .toSet(),
+                                queueState: queueState,
+                                mangaId: widget.manga.id,
+                              );
+                            }
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: CircularProgressIndicator(
+                                    color: AppTheme.accent),
                               ),
-                        leading: _ChapterDownloadButton(
-                          chapter: chapter,
-                          mangaId: widget.manga.id,
-                          mangaDexId: widget.mangaDexId,
-                          mangaTitle: widget.manga.title,
-                          progress: progress,
-                          isDownloaded: isDownloaded,
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            if (isDownloaded)
-                              const Icon(
-                                Icons.offline_pin,
-                                color: AppTheme.accent,
-                                size: 18,
+                            );
+                          }
+
+                          if (snapshot.hasError) {
+                            final message =
+                                'No network or MangaDex is blocked right now.';
+                            if (offlineChapters.isNotEmpty) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$message Showing downloaded chapters instead.',
+                                    style: const TextStyle(
+                                        color: AppTheme.secondaryText),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TextButton.icon(
+                                      onPressed: _retryChapterFeed,
+                                      icon: const Icon(Icons.refresh),
+                                      label: const Text('Retry'),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Expanded(
+                                    child: _OfflineChapterList(
+                                      chapters: offlineChapters,
+                                      downloadedIds: downloadedRecords
+                                          .map((item) => item.chapterId)
+                                          .toSet(),
+                                      queueState: queueState,
+                                      mangaId: widget.manga.id,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'No network or MangaDex is blocked right now.',
+                                    style: TextStyle(
+                                        color: AppTheme.secondaryText),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextButton.icon(
+                                    onPressed: _retryChapterFeed,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Retry'),
+                                  ),
+                                ],
                               ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
+                            );
+                          }
+
+                          final chapters = snapshot.data ?? const [];
+                          if (chapters.isEmpty) {
+                            if (offlineChapters.isNotEmpty) {
+                              return _OfflineChapterList(
+                                chapters: offlineChapters,
+                                downloadedIds: downloadedRecords
+                                    .map((item) => item.chapterId)
+                                    .toSet(),
+                                queueState: queueState,
+                                mangaId: widget.manga.id,
+                              );
+                            }
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                'No readable English chapters found.',
+                                style: TextStyle(color: AppTheme.secondaryText),
+                              ),
+                            );
+                          }
+
+                          final downloadedIds = downloadsAsync.valueOrNull
+                                  ?.map((item) => item.chapterId)
+                                  .toSet() ??
+                              const <String>{};
+
+                          return ListView.separated(
+                            itemCount: chapters.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final chapter = chapters[index];
+                              final secondaryText =
+                                  _chapterSecondaryText(chapter);
+                              final progress =
+                                  queueState.progressFor(chapter.id);
+                              final isDownloaded =
+                                  downloadedIds.contains(chapter.id);
+                              return ListTile(
+                                onTap: () => Navigator.pop(context, chapter),
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  _chapterPrimaryLabel(chapter),
+                                  style: const TextStyle(
+                                      color: AppTheme.primaryText),
+                                ),
+                                subtitle: secondaryText == null
+                                    ? null
+                                    : Text(
+                                        secondaryText,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            color: AppTheme.secondaryText),
+                                      ),
+                                leading: _ChapterDownloadButton(
+                                  chapter: chapter,
+                                  mangaId: widget.manga.id,
+                                  mangaDexId: widget.mangaDexId,
+                                  mangaTitle: widget.manga.title,
+                                  progress: progress,
+                                  isDownloaded: isDownloaded,
+                                ),
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    if (isDownloaded)
+                                      const Icon(
+                                        Icons.offline_pin,
+                                        color: AppTheme.accent,
+                                        size: 18,
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
                         },
                       ),
                     ),
@@ -899,7 +958,8 @@ class _ChapterDownloadButton extends ConsumerWidget {
       DownloadStatus.queued => Icons.schedule,
       DownloadStatus.done => Icons.offline_pin,
       DownloadStatus.error => Icons.error_outline,
-      DownloadStatus.idle => isDownloaded ? Icons.offline_pin : Icons.download_outlined,
+      DownloadStatus.idle =>
+        isDownloaded ? Icons.offline_pin : Icons.download_outlined,
     };
 
     return IconButton(

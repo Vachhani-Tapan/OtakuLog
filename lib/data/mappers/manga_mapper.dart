@@ -95,6 +95,7 @@ class MangaMapper {
       coverImage: model.coverImage,
       totalChapters: model.totalChapters,
       currentChapter: model.currentChapter,
+      rereadCount: model.rereadCount,
       status: _mapStatusFromModel(model.status),
       rating: model.rating,
       genres: model.genres,
@@ -113,6 +114,7 @@ class MangaMapper {
       ..coverImage = entity.coverImage
       ..totalChapters = entity.totalChapters
       ..currentChapter = entity.currentChapter
+      ..rereadCount = entity.rereadCount
       ..status = _mapStatusToModel(entity.status)
       ..mangaCategory = entity.mangaCategory
       ..rating = entity.rating

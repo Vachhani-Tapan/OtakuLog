@@ -118,9 +118,9 @@ class _AnimeDetailBody extends ConsumerWidget {
                           .toList(),
                     ),
                   const SizedBox(height: 24),
-                    if (stripHtmlTags(anime.description).isNotEmpty) ...[
-                      const Text(
-                        'DESCRIPTION',
+                  if (stripHtmlTags(anime.description).isNotEmpty) ...[
+                    const Text(
+                      'DESCRIPTION',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -129,10 +129,10 @@ class _AnimeDetailBody extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                      Text(
-                        stripHtmlTags(anime.description),
-                        style: TextStyle(
-                          color: AppTheme.primaryText.withOpacity(0.8),
+                    Text(
+                      stripHtmlTags(anime.description),
+                      style: TextStyle(
+                        color: AppTheme.primaryText.withOpacity(0.8),
                         height: 1.5,
                       ),
                     ),
@@ -159,12 +159,14 @@ class _AnimeDetailBody extends ConsumerWidget {
     final progress = anime.totalEpisodes > 0
         ? anime.currentEpisode / anime.totalEpisodes
         : 0.0;
+    final isCompleted =
+        anime.totalEpisodes > 0 && anime.currentEpisode >= anime.totalEpisodes;
     final user = ref.watch(currentUserProvider).valueOrNull;
     final releaseCap = ref.watch(animeReleaseCapProvider(anime.id)).valueOrNull;
     final maxAllowedProgress =
         getMaxAllowedProgress(anime, releaseCap: releaseCap);
-    final isCapped =
-        maxAllowedProgress != null && anime.currentEpisode >= maxAllowedProgress;
+    final isCapped = maxAllowedProgress != null &&
+        anime.currentEpisode >= maxAllowedProgress;
     final unitMinutes = user?.defaultAnimeWatchTime ?? 24;
     final displayTotal = anime.totalEpisodes > 0
         ? anime.totalEpisodes.toString()
@@ -192,6 +194,16 @@ class _AnimeDetailBody extends ConsumerWidget {
             ),
           ],
         ),
+        if (anime.rewatchCount > 0) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Rewatched ${anime.rewatchCount} times',
+            style: const TextStyle(
+              color: AppTheme.secondaryText,
+              fontSize: 12,
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -224,20 +236,20 @@ class _AnimeDetailBody extends ConsumerWidget {
               onPressed: isCapped
                   ? null
                   : () async {
-                await ref
-                    .read(localAnalyticsServiceProvider)
-                    .track('quick_log');
-                ref.invalidate(analyticsSnapshotProvider);
-                final result = await ref
-                    .read(trackerNotifierProvider.notifier)
-                    .logAnimeEpisode(
-                      anime,
-                      user: user,
-                    );
-                if (context.mounted) {
-                  await showTrackerFeedback(context, ref, result);
-                }
-              },
+                      await ref
+                          .read(localAnalyticsServiceProvider)
+                          .track('quick_log');
+                      ref.invalidate(analyticsSnapshotProvider);
+                      final result = await ref
+                          .read(trackerNotifierProvider.notifier)
+                          .logAnimeEpisode(
+                            anime,
+                            user: user,
+                          );
+                      if (context.mounted) {
+                        await showTrackerFeedback(context, ref, result);
+                      }
+                    },
               icon: const Icon(Icons.add),
               label: const Text('LOG EPISODE'),
               style: ElevatedButton.styleFrom(
@@ -246,6 +258,28 @@ class _AnimeDetailBody extends ConsumerWidget {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
+            if (isCompleted) ...[
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final result = await ref
+                      .read(trackerNotifierProvider.notifier)
+                      .rewatchAnime(anime);
+
+                  if (context.mounted) {
+                    await showTrackerFeedback(context, ref, result);
+                  }
+
+                  ref.invalidate(animeByIdProvider(itemId));
+                },
+                icon: const Icon(Icons.replay),
+                label: const Text('REWATCH'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent),
+                ),
+              ),
+            ],
           ],
         ),
         if (anime.totalEpisodes <= 0 && maxAllowedProgress != null) ...[
@@ -269,46 +303,46 @@ class _AnimeDetailBody extends ConsumerWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<AnimeStatus>(
-            isDense: false,
-            value: anime.status,
-            isExpanded: true,
-            dropdownColor: AppTheme.surface,
-            style: const TextStyle(
-              color: AppTheme.primaryText,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-            iconEnabledColor: AppTheme.primaryText,
-            selectedItemBuilder: (context) {
-              return AnimeStatus.values
-                  .map(
-                    (s) => Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        s.name.toUpperCase(),
-                        style: const TextStyle(
-                          color: AppTheme.primaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+          isDense: false,
+          value: anime.status,
+          isExpanded: true,
+          dropdownColor: AppTheme.surface,
+          style: const TextStyle(
+            color: AppTheme.primaryText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+          iconEnabledColor: AppTheme.primaryText,
+          selectedItemBuilder: (context) {
+            return AnimeStatus.values
+                .map(
+                  (s) => Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      s.name.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppTheme.primaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  )
-                  .toList();
-            },
-            items: AnimeStatus.values.map((s) {
-              return DropdownMenuItem(
-                value: s,
-                child: Text(
-                  s.name.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppTheme.primaryText,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
                   ),
+                )
+                .toList();
+          },
+          items: AnimeStatus.values.map((s) {
+            return DropdownMenuItem(
+              value: s,
+              child: Text(
+                s.name.toUpperCase(),
+                style: const TextStyle(
+                  color: AppTheme.primaryText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-              );
-            }).toList(),
+              ),
+            );
+          }).toList(),
           onChanged: (newStatus) async {
             if (newStatus != null) {
               final saved = await ref.read(animeRepositoryProvider).saveAnime(

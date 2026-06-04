@@ -21,6 +21,7 @@ import 'package:otakulog/domain/entities/user_session.dart';
 import 'package:otakulog/features/cloud/models/backup_payload.dart';
 import 'package:isar/isar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:otakulog/data/mappers/activity_mapper.dart';
 
 class SyncService {
   final BackupService backupService;
@@ -161,11 +162,7 @@ class SyncService {
       final animeModels = library.whereType<AnimeEntity>().map(AnimeMapper.toModel).toList();
       final mangaModels = library.whereType<MangaEntity>().map(MangaMapper.toModel).toList();
       final sessionModels = sessions.map(UserSessionMapper.toModel).toList();
-      final streakModels = streaks.map((streak) => DailyActivity()
-        ..date = streak.date
-        ..minutesWatched = streak.minutesWatched
-        ..minutesRead = streak.minutesRead
-      ).toList();
+      final streakModels = streaks.map(ActivityMapper.toModel).toList();
 
       if (animeModels.isNotEmpty) {
         await isar.animeModels.putAll(animeModels);

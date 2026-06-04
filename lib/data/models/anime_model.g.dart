@@ -52,24 +52,29 @@ const AnimeModelSchema = CollectionSchema(
       name: r'remoteId',
       type: IsarType.string,
     ),
-    r'status': PropertySchema(
+    r'rewatchCount': PropertySchema(
       id: 7,
+      name: r'rewatchCount',
+      type: IsarType.long,
+    ),
+    r'status': PropertySchema(
+      id: 8,
       name: r'status',
       type: IsarType.byte,
       enumMap: _AnimeModelstatusEnumValueMap,
     ),
     r'title': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalEpisodes': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'totalEpisodes',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -140,10 +145,11 @@ void _animeModelSerialize(
   writer.writeStringList(offsets[4], object.genres);
   writer.writeDouble(offsets[5], object.rating);
   writer.writeString(offsets[6], object.remoteId);
-  writer.writeByte(offsets[7], object.status.index);
-  writer.writeString(offsets[8], object.title);
-  writer.writeLong(offsets[9], object.totalEpisodes);
-  writer.writeDateTime(offsets[10], object.updatedAt);
+  writer.writeLong(offsets[7], object.rewatchCount);
+  writer.writeByte(offsets[8], object.status.index);
+  writer.writeString(offsets[9], object.title);
+  writer.writeLong(offsets[10], object.totalEpisodes);
+  writer.writeDateTime(offsets[11], object.updatedAt);
 }
 
 AnimeModel _animeModelDeserialize(
@@ -161,12 +167,13 @@ AnimeModel _animeModelDeserialize(
   object.id = id;
   object.rating = reader.readDoubleOrNull(offsets[5]);
   object.remoteId = reader.readString(offsets[6]);
+  object.rewatchCount = reader.readLong(offsets[7]);
   object.status =
-      _AnimeModelstatusValueEnumMap[reader.readByteOrNull(offsets[7])] ??
+      _AnimeModelstatusValueEnumMap[reader.readByteOrNull(offsets[8])] ??
           AnimeStatusModel.watching;
-  object.title = reader.readString(offsets[8]);
-  object.totalEpisodes = reader.readLong(offsets[9]);
-  object.updatedAt = reader.readDateTime(offsets[10]);
+  object.title = reader.readString(offsets[9]);
+  object.totalEpisodes = reader.readLong(offsets[10]);
+  object.updatedAt = reader.readDateTime(offsets[11]);
   return object;
 }
 
@@ -192,13 +199,15 @@ P _animeModelDeserializeProp<P>(
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readLong(offset)) as P;
+    case 8:
       return (_AnimeModelstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           AnimeStatusModel.watching) as P;
-    case 8:
-      return (reader.readString(offset)) as P;
     case 9:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 10:
+      return (reader.readLong(offset)) as P;
+    case 11:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1298,6 +1307,62 @@ extension AnimeModelQueryFilter
     });
   }
 
+  QueryBuilder<AnimeModel, AnimeModel, QAfterFilterCondition>
+      rewatchCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rewatchCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AnimeModel, AnimeModel, QAfterFilterCondition>
+      rewatchCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rewatchCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AnimeModel, AnimeModel, QAfterFilterCondition>
+      rewatchCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rewatchCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AnimeModel, AnimeModel, QAfterFilterCondition>
+      rewatchCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rewatchCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<AnimeModel, AnimeModel, QAfterFilterCondition> statusEqualTo(
       AnimeStatusModel value) {
     return QueryBuilder.apply(this, (query) {
@@ -1674,6 +1739,18 @@ extension AnimeModelQuerySortBy
     });
   }
 
+  QueryBuilder<AnimeModel, AnimeModel, QAfterSortBy> sortByRewatchCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rewatchCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AnimeModel, AnimeModel, QAfterSortBy> sortByRewatchCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rewatchCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<AnimeModel, AnimeModel, QAfterSortBy> sortByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -1810,6 +1887,18 @@ extension AnimeModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AnimeModel, AnimeModel, QAfterSortBy> thenByRewatchCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rewatchCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AnimeModel, AnimeModel, QAfterSortBy> thenByRewatchCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rewatchCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<AnimeModel, AnimeModel, QAfterSortBy> thenByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -1906,6 +1995,12 @@ extension AnimeModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AnimeModel, AnimeModel, QDistinct> distinctByRewatchCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rewatchCount');
+    });
+  }
+
   QueryBuilder<AnimeModel, AnimeModel, QDistinct> distinctByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'status');
@@ -1979,6 +2074,12 @@ extension AnimeModelQueryProperty
   QueryBuilder<AnimeModel, String, QQueryOperations> remoteIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'remoteId');
+    });
+  }
+
+  QueryBuilder<AnimeModel, int, QQueryOperations> rewatchCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rewatchCount');
     });
   }
 

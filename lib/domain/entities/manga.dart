@@ -14,6 +14,7 @@ class MangaEntity implements TrackableContent {
 
   final int totalChapters;
   final int currentChapter;
+  final int rereadCount;
   final MangaStatus status;
   @override
   final double? rating;
@@ -40,6 +41,7 @@ class MangaEntity implements TrackableContent {
     required this.coverImage,
     required this.totalChapters,
     required this.currentChapter,
+    this.rereadCount = 0,
     required this.status,
     this.rating,
     required this.genres,
@@ -55,6 +57,7 @@ class MangaEntity implements TrackableContent {
     String? coverImage,
     int? totalChapters,
     int? currentChapter,
+    int? rereadCount,
     MangaStatus? status,
     double? rating,
     List<String>? genres,
@@ -70,6 +73,7 @@ class MangaEntity implements TrackableContent {
       coverImage: coverImage ?? this.coverImage,
       totalChapters: totalChapters ?? this.totalChapters,
       currentChapter: currentChapter ?? this.currentChapter,
+      rereadCount: rereadCount ?? this.rereadCount,
       status: status ?? this.status,
       rating: rating ?? this.rating,
       genres: genres ?? this.genres,

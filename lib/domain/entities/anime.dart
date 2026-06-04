@@ -12,6 +12,7 @@ class AnimeEntity implements TrackableContent {
 
   final int totalEpisodes;
   final int currentEpisode;
+  final int rewatchCount;
   final AnimeStatus status;
   @override
   final double? rating;
@@ -35,6 +36,7 @@ class AnimeEntity implements TrackableContent {
     required this.coverImage,
     required this.totalEpisodes,
     required this.currentEpisode,
+    this.rewatchCount = 0,
     required this.status,
     this.rating,
     required this.genres,
@@ -48,6 +50,7 @@ class AnimeEntity implements TrackableContent {
     String? coverImage,
     int? totalEpisodes,
     int? currentEpisode,
+    int? rewatchCount,
     AnimeStatus? status,
     double? rating,
     List<String>? genres,
@@ -61,6 +64,7 @@ class AnimeEntity implements TrackableContent {
       coverImage: coverImage ?? this.coverImage,
       totalEpisodes: totalEpisodes ?? this.totalEpisodes,
       currentEpisode: currentEpisode ?? this.currentEpisode,
+      rewatchCount: rewatchCount ?? this.rewatchCount,
       status: status ?? this.status,
       rating: rating ?? this.rating,
       genres: genres ?? this.genres,

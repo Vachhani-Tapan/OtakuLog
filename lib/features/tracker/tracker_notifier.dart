@@ -93,7 +93,8 @@ class TrackerNotifier extends StateNotifier<TrackerState> {
       final delta = safeTarget - anime.currentEpisode;
       if (delta <= 0) {
         return TrackerActionResult(
-          message: 'Only $maxAllowed ${progressUnitLabel(anime)} released so far',
+          message:
+              'Only $maxAllowed ${progressUnitLabel(anime)} released so far',
           undoneMessage: 'Nothing changed',
         );
       }
@@ -177,7 +178,8 @@ class TrackerNotifier extends StateNotifier<TrackerState> {
       final delta = safeTarget - manga.currentChapter;
       if (delta <= 0) {
         return TrackerActionResult(
-          message: 'Only $maxAllowed ${progressUnitLabel(manga)} released so far',
+          message:
+              'Only $maxAllowed ${progressUnitLabel(manga)} released so far',
           undoneMessage: 'Nothing changed',
         );
       }
@@ -235,6 +237,32 @@ class TrackerNotifier extends StateNotifier<TrackerState> {
     } finally {
       _finishBusy(manga.id);
     }
+  }
+
+  Future<TrackerActionResult?> rewatchAnime(AnimeEntity anime) async {
+    final updatedAnime = anime.copyWith(
+      currentEpisode: 0,
+      rewatchCount: anime.rewatchCount + 1,
+      updatedAt: DateTime.now(),
+    );
+
+    return _updateAnime(
+      updatedAnime,
+      message: 'Started rewatch',
+    );
+  }
+
+  Future<TrackerActionResult?> rereadManga(MangaEntity manga) async {
+    final updatedManga = manga.copyWith(
+      currentChapter: 0,
+      rereadCount: manga.rereadCount + 1,
+      updatedAt: DateTime.now(),
+    );
+
+    return _updateManga(
+      updatedManga,
+      message: 'Started reread',
+    );
   }
 
   Future<TrackerActionResult?> markCompleted(

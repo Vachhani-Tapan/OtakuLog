@@ -4,13 +4,16 @@ import 'package:otakulog/domain/entities/anime.dart';
 class AnimeMapper {
   static AnimeEntity fromJson(Map<String, dynamic> json) {
     final titleData = json['title'] as Map? ?? {};
-    final resolvedTitle = titleData['english'] ?? titleData['romaji'] ?? titleData['native'] ?? 'Unknown';
+    final resolvedTitle = titleData['english'] ??
+        titleData['romaji'] ??
+        titleData['native'] ??
+        'Unknown';
 
     final coverImage = json['coverImage'] as Map? ?? {};
     final largeCover = coverImage['large'] ?? '';
 
     final genres = List<String>.from(json['genres'] ?? []);
-    
+
     // Defensive numeric parsing
     final averageScore = json['averageScore'];
     double? rating;
@@ -47,6 +50,7 @@ class AnimeMapper {
       coverImage: model.coverImage,
       totalEpisodes: model.totalEpisodes,
       currentEpisode: model.currentEpisode,
+      rewatchCount: model.rewatchCount,
       status: _mapStatusFromModel(model.status),
       rating: model.rating,
       genres: model.genres,
@@ -63,6 +67,7 @@ class AnimeMapper {
       ..coverImage = entity.coverImage
       ..totalEpisodes = entity.totalEpisodes
       ..currentEpisode = entity.currentEpisode
+      ..rewatchCount = entity.rewatchCount
       ..status = _mapStatusToModel(entity.status)
       ..rating = entity.rating
       ..genres = entity.genres
