@@ -2,58 +2,41 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:otakulog/data/local/retention_preferences_service.dart';
 
 void main() {
-  group('WebDAV Configuration & Preference Serialization Tests', () {
-    test('RetentionPreferences should successfully serialize and deserialize WebDAV configurations', () {
+  group('WebDAV Status & Preference Serialization Tests', () {
+    test('RetentionPreferences should successfully serialize and deserialize WebDAV status fields', () {
       const preferences = RetentionPreferences(
         notificationsEnabled: false,
-        webdavUrl: 'https://nextcloud.myhost.com/remote.php/dav/files/user/',
-        webdavUsername: 'dhruv',
-        webdavPassword: 'app-specific-token-123',
         webdavLastSyncedAtIso: '2026-06-03T12:00:00.000Z',
         webdavLastError: '401 Unauthorized',
       );
 
       final json = preferences.toJson();
       
-      expect(json['webdavUrl'], 'https://nextcloud.myhost.com/remote.php/dav/files/user/');
-      expect(json['webdavUsername'], 'dhruv');
-      expect(json['webdavPassword'], 'app-specific-token-123');
       expect(json['webdavLastSyncedAtIso'], '2026-06-03T12:00:00.000Z');
       expect(json['webdavLastError'], '401 Unauthorized');
+      // Verify credentials are not serialized inside plaintext preferences
+      expect(json['webdavUrl'], isNull);
+      expect(json['webdavUsername'], isNull);
+      expect(json['webdavPassword'], isNull);
 
       final deserialized = RetentionPreferences.fromJson(json);
 
-      expect(deserialized.webdavUrl, 'https://nextcloud.myhost.com/remote.php/dav/files/user/');
-      expect(deserialized.webdavUsername, 'dhruv');
-      expect(deserialized.webdavPassword, 'app-specific-token-123');
       expect(deserialized.webdavLastSyncedAtIso, '2026-06-03T12:00:00.000Z');
       expect(deserialized.webdavLastError, '401 Unauthorized');
       expect(deserialized.webdavLastSyncedAt, isNotNull);
       expect(deserialized.webdavLastSyncedAt!.year, 2026);
     });
 
-    test('RetentionPreferences copyWith should cleanly update WebDAV configuration options', () {
+    test('RetentionPreferences copyWith should cleanly update WebDAV status fields', () {
       const preferences = RetentionPreferences();
       
       final updated = preferences.copyWith(
-        webdavUrl: 'https://dav.box.com/dav',
-        webdavUsername: 'backup_user',
-        webdavPassword: 'password123',
-      );
-
-      expect(updated.webdavUrl, 'https://dav.box.com/dav');
-      expect(updated.webdavUsername, 'backup_user');
-      expect(updated.webdavPassword, 'password123');
-      expect(updated.webdavLastSyncedAtIso, isNull);
-      
-      final synced = updated.copyWith(
         webdavLastSyncedAtIso: '2026-06-03T22:00:00.000Z',
         webdavLastError: '',
       );
 
-      expect(synced.webdavUrl, 'https://dav.box.com/dav');
-      expect(synced.webdavLastSyncedAtIso, '2026-06-03T22:00:00.000Z');
-      expect(synced.webdavLastError, isEmpty);
+      expect(updated.webdavLastSyncedAtIso, '2026-06-03T22:00:00.000Z');
+      expect(updated.webdavLastError, isEmpty);
     });
   });
 }

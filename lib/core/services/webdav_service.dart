@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:isar/isar.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:otakulog/data/local/retention_preferences_service.dart';
+import 'package:otakulog/data/mappers/activity_mapper.dart';
 import 'package:otakulog/data/models/daily_activity.dart';
 import 'package:otakulog/domain/entities/activity.dart';
 import 'package:otakulog/domain/entities/trackable_content.dart';
@@ -26,6 +28,7 @@ class WebDavService {
   final BackupMapper backupMapper;
   final SyncService syncService;
   final Isar isar;
+  final FlutterSecureStorage secureStorage;
 
   WebDavService({
     required this.userRepository,
@@ -36,6 +39,7 @@ class WebDavService {
     required this.backupMapper,
     required this.syncService,
     required this.isar,
+    required this.secureStorage,
   });
 
   webdav.Client _buildClient(String url, String username, String password) {
@@ -63,10 +67,9 @@ class WebDavService {
   }
 
   Future<void> syncNow({required RestoreMode mode}) async {
-    final prefs = await retentionPreferencesService.load();
-    final url = prefs.webdavUrl;
-    final username = prefs.webdavUsername;
-    final password = prefs.webdavPassword;
+    final url = await secureStorage.read(key: 'webdav_url');
+    final username = await secureStorage.read(key: 'webdav_username');
+    final password = await secureStorage.read(key: 'webdav_password');
 
     if (url == null || url.trim().isEmpty || username == null || username.trim().isEmpty || password == null || password.trim().isEmpty) {
       throw Exception('WebDAV sync credentials are not configured.');
@@ -117,7 +120,7 @@ class WebDavService {
       final library = [...animeList, ...mangaList];
       final sessions = await sessionRepository.getAllSessions();
       final streaks = (await isar.dailyActivitys.where().findAll())
-          .map((e) => e.toEntity())
+          .map(ActivityMapper.toEntity)
           .toList();
       final currentPrefs = await retentionPreferencesService.load();
 

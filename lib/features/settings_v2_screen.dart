@@ -56,6 +56,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool? _webdavConnectionSuccess;
 
   @override
+  void initState() {
+    super.initState();
+    _loadSecureCredentials();
+  }
+
+  Future<void> _loadSecureCredentials() async {
+    try {
+      final secureStorage = ref.read(secureStorageProvider);
+      final url = await secureStorage.read(key: 'webdav_url') ?? '';
+      final username = await secureStorage.read(key: 'webdav_username') ?? '';
+      final password = await secureStorage.read(key: 'webdav_password') ?? '';
+      if (mounted) {
+        setState(() {
+          _webdavUrlController.text = url;
+          _webdavUsernameController.text = username;
+          _webdavPasswordController.text = password;
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _animeController.dispose();
@@ -603,15 +625,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final success = await ref.read(webDavServiceProvider).testConnection(url, user, pass);
       if (success) {
-        // Auto-save the credentials in settings
-        final prefs = await ref.read(retentionPreferencesProvider.future);
-        await ref.read(retentionPreferencesServiceProvider).save(
-              prefs.copyWith(
-                webdavUrl: url,
-                webdavUsername: user,
-                webdavPassword: pass,
-              ),
-            );
+        // Auto-save the credentials securely
+        final secureStorage = ref.read(secureStorageProvider);
+        await secureStorage.write(key: 'webdav_url', value: url);
+        await secureStorage.write(key: 'webdav_username', value: user);
+        await secureStorage.write(key: 'webdav_password', value: pass);
         ref.invalidate(retentionPreferencesProvider);
 
         setState(() => _webdavConnectionSuccess = true);
@@ -640,15 +658,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
 
-    // Save credentials first to make sure they are active
-    final prefs = await ref.read(retentionPreferencesProvider.future);
-    await ref.read(retentionPreferencesServiceProvider).save(
-          prefs.copyWith(
-            webdavUrl: url,
-            webdavUsername: user,
-            webdavPassword: pass,
-          ),
-        );
+    // Save credentials securely first to make sure they are active
+    final secureStorage = ref.read(secureStorageProvider);
+    await secureStorage.write(key: 'webdav_url', value: url);
+    await secureStorage.write(key: 'webdav_username', value: user);
+    await secureStorage.write(key: 'webdav_password', value: pass);
     ref.invalidate(retentionPreferencesProvider);
 
     if (!mounted) return;
@@ -1219,9 +1233,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _blurCovers = user.blurCoverInPublic;
     _notificationsEnabled = prefs?.notificationsEnabled ?? true;
     _preferDataSaverDownloads = prefs?.preferDataSaverDownloads ?? true;
-    _webdavUrlController.text = prefs?.webdavUrl ?? '';
-    _webdavUsernameController.text = prefs?.webdavUsername ?? '';
-    _webdavPasswordController.text = prefs?.webdavPassword ?? '';
     _initialized = true;
   }
 
@@ -1250,11 +1261,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               notificationsEnabled: _notificationsEnabled,
               preferDataSaverDownloads: _preferDataSaverDownloads,
               lastAppOpenedAtIso: DateTime.now().toIso8601String(),
-              webdavUrl: _webdavUrlController.text.trim(),
-              webdavUsername: _webdavUsernameController.text.trim(),
-              webdavPassword: _webdavPasswordController.text,
             ),
           );
+
+      // Save WebDAV credentials securely
+      final secureStorage = ref.read(secureStorageProvider);
+      await secureStorage.write(key: 'webdav_url', value: _webdavUrlController.text.trim());
+      await secureStorage.write(key: 'webdav_username', value: _webdavUsernameController.text.trim());
+      await secureStorage.write(key: 'webdav_password', value: _webdavPasswordController.text);
 
       ref.invalidate(currentUserProvider);
       ref.invalidate(retentionPreferencesProvider);

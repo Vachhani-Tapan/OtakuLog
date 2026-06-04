@@ -42,6 +42,7 @@ import 'package:otakulog/features/search/models/search_result_item.dart';
 import 'package:otakulog/features/stats/models/wrapped_summary.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Services
 final anilistServiceProvider =
@@ -98,6 +99,13 @@ final localBackupServiceProvider = Provider<LocalBackupService>((ref) {
     isar: IsarService.instance,
   );
 });
+final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
+  return const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
+});
 final webDavServiceProvider = Provider<WebDavService>((ref) {
   return WebDavService(
     userRepository: ref.watch(userRepositoryProvider),
@@ -108,6 +116,7 @@ final webDavServiceProvider = Provider<WebDavService>((ref) {
     backupMapper: ref.watch(backupMapperProvider),
     syncService: ref.watch(syncServiceProvider),
     isar: IsarService.instance,
+    secureStorage: ref.watch(secureStorageProvider),
   );
 });
 final cloudDegradedProvider = StateProvider<bool>((ref) => false);
