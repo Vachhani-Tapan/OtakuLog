@@ -18,6 +18,10 @@ class RetentionPreferences {
   final bool preferDataSaverDownloads;
   final List<Map<String, dynamic>> cachedRecommendations;
 
+  // WebDAV preferences (status/non-sensitive only)
+  final String? webdavLastSyncedAtIso;
+  final String? webdavLastError;
+
   const RetentionPreferences({
     this.notificationsEnabled = true,
     this.lastAppOpenedAtIso,
@@ -32,6 +36,8 @@ class RetentionPreferences {
     this.lastBackupAtIso,
     this.preferDataSaverDownloads = true,
     this.cachedRecommendations = const [],
+    this.webdavLastSyncedAtIso,
+    this.webdavLastError,
   });
 
   DateTime? get lastAppOpenedAt =>
@@ -44,6 +50,8 @@ class RetentionPreferences {
       : DateTime.tryParse(lastReminderScheduledForIso!);
   DateTime? get lastBackupAt =>
       lastBackupAtIso == null ? null : DateTime.tryParse(lastBackupAtIso!);
+  DateTime? get webdavLastSyncedAt =>
+      webdavLastSyncedAtIso == null ? null : DateTime.tryParse(webdavLastSyncedAtIso!);
 
   RetentionPreferences copyWith({
     bool? notificationsEnabled,
@@ -59,6 +67,8 @@ class RetentionPreferences {
     String? lastBackupAtIso,
     bool? preferDataSaverDownloads,
     List<Map<String, dynamic>>? cachedRecommendations,
+    String? webdavLastSyncedAtIso,
+    String? webdavLastError,
   }) {
     return RetentionPreferences(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -83,6 +93,8 @@ class RetentionPreferences {
       preferDataSaverDownloads:
           preferDataSaverDownloads ?? this.preferDataSaverDownloads,
       cachedRecommendations: cachedRecommendations ?? this.cachedRecommendations,
+      webdavLastSyncedAtIso: webdavLastSyncedAtIso ?? this.webdavLastSyncedAtIso,
+      webdavLastError: webdavLastError ?? this.webdavLastError,
     );
   }
 
@@ -101,6 +113,8 @@ class RetentionPreferences {
       'lastBackupAtIso': lastBackupAtIso,
       'preferDataSaverDownloads': preferDataSaverDownloads,
       'cachedRecommendations': cachedRecommendations,
+      'webdavLastSyncedAtIso': webdavLastSyncedAtIso,
+      'webdavLastError': webdavLastError,
     };
   }
 
@@ -125,6 +139,8 @@ class RetentionPreferences {
           (json['cachedRecommendations'] as List? ?? const []).whereType<Map>().map((item) {
         return item.map((key, value) => MapEntry(key.toString(), value));
       }).toList(),
+      webdavLastSyncedAtIso: json['webdavLastSyncedAtIso']?.toString(),
+      webdavLastError: json['webdavLastError']?.toString(),
     );
   }
 }

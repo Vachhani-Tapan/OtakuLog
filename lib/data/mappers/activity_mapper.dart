@@ -8,4 +8,13 @@ class ActivityMapper {
       ..minutesWatched = activity.minutesWatched
       ..minutesRead = activity.minutesRead;
   }
+
+  static Activity toEntity(DailyActivity model) {
+    return Activity(
+      id: model.id,
+      date: model.date,
+      minutesWatched: model.minutesWatched,
+      minutesRead: model.minutesRead,
+    );
+  }
 }
