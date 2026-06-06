@@ -5,9 +5,7 @@ class GoalMapper {
   static GoalEntity toEntity(GoalModel model) {
     return GoalEntity(
       id: model.id.toString(),
-      goalType: model.goalType == 'animeEpisodes'
-          ? GoalType.animeEpisodes
-          : GoalType.mangaChapters,
+      goalType: GoalType.values.byName(model.goalType),
       targetValue: model.targetValue,
       month: model.month,
       year: model.year,
