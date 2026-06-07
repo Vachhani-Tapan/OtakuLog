@@ -21,6 +21,7 @@ class RetentionPreferences {
   // WebDAV preferences (status/non-sensitive only)
   final String? webdavLastSyncedAtIso;
   final String? webdavLastError;
+  final String webdavSyncFrequency;
 
   const RetentionPreferences({
     this.notificationsEnabled = true,
@@ -38,6 +39,7 @@ class RetentionPreferences {
     this.cachedRecommendations = const [],
     this.webdavLastSyncedAtIso,
     this.webdavLastError,
+    this.webdavSyncFrequency = 'off',
   });
 
   DateTime? get lastAppOpenedAt =>
@@ -69,6 +71,7 @@ class RetentionPreferences {
     List<Map<String, dynamic>>? cachedRecommendations,
     String? webdavLastSyncedAtIso,
     String? webdavLastError,
+    String? webdavSyncFrequency,
   }) {
     return RetentionPreferences(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -95,6 +98,7 @@ class RetentionPreferences {
       cachedRecommendations: cachedRecommendations ?? this.cachedRecommendations,
       webdavLastSyncedAtIso: webdavLastSyncedAtIso ?? this.webdavLastSyncedAtIso,
       webdavLastError: webdavLastError ?? this.webdavLastError,
+      webdavSyncFrequency: webdavSyncFrequency ?? this.webdavSyncFrequency,
     );
   }
 
@@ -115,6 +119,7 @@ class RetentionPreferences {
       'cachedRecommendations': cachedRecommendations,
       'webdavLastSyncedAtIso': webdavLastSyncedAtIso,
       'webdavLastError': webdavLastError,
+      'webdavSyncFrequency': webdavSyncFrequency,
     };
   }
 
@@ -141,6 +146,7 @@ class RetentionPreferences {
       }).toList(),
       webdavLastSyncedAtIso: json['webdavLastSyncedAtIso']?.toString(),
       webdavLastError: json['webdavLastError']?.toString(),
+      webdavSyncFrequency: json['webdavSyncFrequency']?.toString() ?? 'off',
     );
   }
 }

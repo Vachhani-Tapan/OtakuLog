@@ -5,6 +5,8 @@ import 'package:otakulog/app/app.dart';
 import 'package:otakulog/core/config/cloud_config.dart';
 import 'package:otakulog/core/config/cloud_runtime.dart';
 import 'package:otakulog/core/services/reminder_service.dart';
+import 'package:otakulog/core/services/background_sync_manager.dart';
+import 'package:otakulog/data/local/retention_preferences_service.dart';
 import 'package:otakulog/data/local/isar_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -27,6 +29,12 @@ void main() async {
 
   await IsarService.init();
   await ReminderService().initialize();
+  
+  try {
+    await BackgroundSyncManager.initialize();
+    final prefs = await RetentionPreferencesService().load();
+    await BackgroundSyncManager.updateSchedule(prefs.webdavSyncFrequency);
+  } catch (_) {}
   
   runApp(
     const ProviderScope(

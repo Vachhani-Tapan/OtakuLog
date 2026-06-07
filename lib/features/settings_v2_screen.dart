@@ -17,6 +17,7 @@ import 'package:otakulog/features/cloud/models/cloud_availability_state.dart';
 import 'package:otakulog/features/downloads/download_queue_notifier.dart';
 import 'package:otakulog/features/downloads/downloads_manager_screen.dart';
 import 'package:otakulog/core/services/local_backup_service.dart';
+import 'package:otakulog/core/services/background_sync_manager.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -39,6 +40,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   String _adultMode = 'off';
   String _searchMedium = 'anime';
+  String _webdavSyncFrequency = 'off';
   bool _blurCovers = false;
   bool _notificationsEnabled = true;
   bool _preferDataSaverDownloads = true;
@@ -528,6 +530,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             obscureText: true,
             style: const TextStyle(color: AppTheme.primaryText),
             decoration: _decoration('Enter app password or token'),
+          ),
+          const SizedBox(height: 12),
+          _fieldLabel('Automated Sync Frequency'),
+          const SizedBox(height: 8),
+          _dropdown<String>(
+            value: _webdavSyncFrequency,
+            items: const ['off', '12h', '24h'],
+            onChanged: (value) => setState(() => _webdavSyncFrequency = value!),
           ),
           const SizedBox(height: 16),
           if (lastSynced != null) ...[
@@ -1233,6 +1243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _blurCovers = user.blurCoverInPublic;
     _notificationsEnabled = prefs?.notificationsEnabled ?? true;
     _preferDataSaverDownloads = prefs?.preferDataSaverDownloads ?? true;
+    _webdavSyncFrequency = prefs?.webdavSyncFrequency ?? 'off';
     _initialized = true;
   }
 
@@ -1260,9 +1271,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             prefs.copyWith(
               notificationsEnabled: _notificationsEnabled,
               preferDataSaverDownloads: _preferDataSaverDownloads,
+              webdavSyncFrequency: _webdavSyncFrequency,
               lastAppOpenedAtIso: DateTime.now().toIso8601String(),
             ),
           );
+
+      try {
+        await BackgroundSyncManager.updateSchedule(_webdavSyncFrequency);
+      } catch (_) {}
 
       // Save WebDAV credentials securely
       final secureStorage = ref.read(secureStorageProvider);
