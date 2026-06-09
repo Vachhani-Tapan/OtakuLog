@@ -309,6 +309,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: AppTheme.primaryText),
             decoration: _decoration('name@example.com'),
+            enableSuggestions: false,
+            autocorrect: false,
           ),
           const SizedBox(height: 12),
           _fieldLabel('Password'),
@@ -882,6 +884,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextField(
             controller: _webdavPasswordController,
             obscureText: true,
+            enableSuggestions: false,
+            autocorrect: false,
             style: const TextStyle(color: AppTheme.primaryText),
             decoration: _decoration('Enter app password or token'),
           ),
