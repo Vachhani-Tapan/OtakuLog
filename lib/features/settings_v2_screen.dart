@@ -571,46 +571,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 16),
           ],
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isTestingWebdav ? null : _testWebdavConnection,
-                  icon: _isTestingWebdav
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppTheme.accent,
-                          ),
-                        )
-                      : (_webdavConnectionSuccess == true
-                          ? const Icon(Icons.check_circle_outline, color: Colors.green)
-                          : (_webdavConnectionSuccess == false
-                              ? const Icon(Icons.error_outline, color: Colors.redAccent)
-                              : const Icon(Icons.sync_alt_outlined))),
-                  label: Text(_isTestingWebdav ? 'TESTING...' : 'TEST CONNECTION'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isWebdavSyncing ? null : _showWebdavSyncConfirmDialog,
-                  icon: _isWebdavSyncing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.cloud_sync_outlined),
-                  label: Text(_isWebdavSyncing ? 'SYNCING...' : 'SYNC NOW'),
-                ),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isTestingWebdav ? null : _testWebdavConnection,
+              icon: _isTestingWebdav
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.accent,
+                      ),
+                    )
+                  : (_webdavConnectionSuccess == true
+                      ? const Icon(Icons.check_circle_outline, color: Colors.green)
+                      : (_webdavConnectionSuccess == false
+                          ? const Icon(Icons.error_outline, color: Colors.redAccent)
+                          : const Icon(Icons.sync_alt_outlined))),
+              label: Text(_isTestingWebdav ? 'TESTING...' : 'TEST CONNECTION'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isWebdavSyncing ? null : _showWebdavSyncConfirmDialog,
+              icon: _isWebdavSyncing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.cloud_sync_outlined),
+              label: Text(_isWebdavSyncing ? 'SYNCING...' : 'SYNC NOW'),
+            ),
           ),
         ],
       ),

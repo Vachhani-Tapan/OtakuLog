@@ -80,8 +80,10 @@ void callbackDispatcher() {
       final prefsService = RetentionPreferencesService();
       final backupMapper = BackupMapper();
 
-      // Placeholder dummy backupService, since SyncService uses supabase backupService.
-      // But WebDavService uses SyncService's mergeData. WebDavService's syncNow itself manages WebDAV connection.
+      // NOTE: Passing a dummy BackupService with a null client is intentional here.
+      // WebDavService only uses SyncService to access SyncService.mergeData(), which acts 
+      // purely on local models and does not utilize BackupService or the remote Supabase client. 
+      // This decouples the background WebDAV synchronization from any foreground Supabase requirements.
       final dummyBackupService = BackupService(client: null);
       final syncService = SyncService(
         backupService: dummyBackupService,
