@@ -17,7 +17,7 @@ Every bug fix, feature, doc improvement, and test matters — you're helping bui
 
 | Name | GitHub | Contribution |
 |------|--------|--------------|
-| Rishab | [@rishab11250](https://github.com/rishab11250) | Fixed Wrapped streak scoping to use filtered sessions instead of all sessions |
+| *Your name here* | *@yourhandle* | *Brief description of what you did* |
 
 ---
 
