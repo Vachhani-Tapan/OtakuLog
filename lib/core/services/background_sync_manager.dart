@@ -23,6 +23,17 @@ import 'package:otakulog/data/remote/backup_service.dart';
 import 'package:otakulog/core/services/sync_service.dart';
 import 'package:otakulog/features/cloud/models/backup_payload.dart';
 
+// Placeholder / Stub for GoalModelSchema to prevent compilation failures before PR #57 is merged.
+// Once PR #57 is merged, this stub can be replaced by the actual model import.
+class GoalModel {}
+const GoalModelSchema = CollectionSchema<GoalModel>(
+  name: 'GoalModel',
+  idName: 'id',
+  properties: {},
+  indexes: {},
+  links: {},
+);
+
 const String backgroundSyncTaskName = "com.otakulog.background_webdav_sync";
 
 @pragma('vm:entry-point')
@@ -67,6 +78,7 @@ void callbackDispatcher() {
           DailyActivitySchema,
           UserSessionModelSchema,
           AchievementModelSchema,
+          GoalModelSchema,
         ],
         directory: dir.path,
         name: 'default',
