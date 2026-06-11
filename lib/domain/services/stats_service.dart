@@ -160,7 +160,7 @@ class StatsService {
       subtitle: 'A narrative snapshot of your last 7 days.',
       sessions: filtered,
       library: library,
-      streak: calculateStreak(sessions),
+      streak: calculateStreak(filtered),
     );
   }
 
@@ -182,7 +182,7 @@ class StatsService {
       subtitle: 'Your strongest habits over the last 30 days.',
       sessions: filtered,
       library: library,
-      streak: calculateStreak(sessions),
+      streak: calculateStreak(filtered),
     );
   }
 
