@@ -468,6 +468,7 @@ class TrackerNotifier extends StateNotifier<TrackerState> {
     ref.invalidate(weeklyWrappedProvider);
     ref.invalidate(monthlyWrappedProvider);
     ref.invalidate(wrappedPromptProvider);
+    ref.invalidate(monthlyGoalProgressProvider);
   }
 
   bool _startBusy(String contentId) {
