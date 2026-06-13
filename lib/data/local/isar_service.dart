@@ -6,6 +6,7 @@ import 'package:otakulog/data/models/user_session_model.dart';
 import 'package:otakulog/data/models/user_model.dart';
 import 'package:otakulog/data/models/daily_activity.dart';
 import 'package:otakulog/data/models/goal_model.dart';
+import 'package:otakulog/data/models/achievement_model.dart';
 
 class IsarService {
   static late Isar _isar;
@@ -22,6 +23,7 @@ class IsarService {
         DailyActivitySchema,
         UserSessionModelSchema,
         GoalModelSchema,
+        AchievementModelSchema,
       ],
       directory: dir.path,
     );

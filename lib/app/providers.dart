@@ -20,6 +20,7 @@ import 'package:otakulog/domain/entities/manga.dart';
 import 'package:otakulog/domain/entities/trackable_content.dart';
 import 'package:otakulog/domain/entities/user.dart';
 import 'package:otakulog/domain/entities/user_session.dart';
+import 'package:otakulog/domain/entities/achievement.dart';
 import 'package:otakulog/domain/repositories/anime_repository.dart';
 import 'package:otakulog/domain/repositories/manga_repository.dart';
 import 'package:otakulog/domain/repositories/search_repository.dart';
@@ -28,12 +29,14 @@ import 'package:otakulog/domain/repositories/tracker_repository.dart';
 import 'package:otakulog/domain/repositories/user_repository.dart';
 import 'package:otakulog/domain/services/recommendation_service.dart';
 import 'package:otakulog/domain/services/stats_service.dart';
+import 'package:otakulog/domain/services/achievement_service.dart';
 import 'package:otakulog/core/config/cloud_config.dart';
 import 'package:otakulog/core/config/cloud_runtime.dart';
 import 'package:otakulog/core/services/reminder_service.dart';
 import 'package:otakulog/core/services/sync_service.dart';
 import 'package:otakulog/core/services/local_backup_service.dart';
 import 'package:otakulog/core/services/webdav_service.dart';
+import 'package:otakulog/core/services/google_drive_service.dart';
 import 'package:otakulog/core/services/wrapped_trigger_service.dart';
 import 'package:otakulog/features/activity_models.dart';
 import 'package:otakulog/features/cloud/models/cloud_availability_state.dart';
@@ -56,6 +59,14 @@ final mangadexServiceProvider =
 final nhentaiServiceProvider =
     Provider<NhentaiService>((ref) => NhentaiService());
 final statsServiceProvider = Provider<StatsService>((ref) => StatsService());
+final achievementServiceProvider = Provider<AchievementService>((ref) {
+  return AchievementService(IsarService.instance);
+});
+
+final unlockedAchievementsProvider = FutureProvider<List<AchievementEntity>>((ref) async {
+  final service = ref.watch(achievementServiceProvider);
+  return service.getUnlockedAchievements();
+});
 final recommendationServiceProvider =
     Provider<RecommendationService>((ref) => RecommendationService());
 final retentionPreferencesServiceProvider =
@@ -121,6 +132,18 @@ final webDavServiceProvider = Provider<WebDavService>((ref) {
     syncService: ref.watch(syncServiceProvider),
     isar: IsarService.instance,
     secureStorage: ref.watch(secureStorageProvider),
+  );
+});
+final googleDriveServiceProvider = Provider<GoogleDriveSyncService>((ref) {
+  return GoogleDriveSyncService(
+    userRepository: ref.watch(userRepositoryProvider),
+    animeRepository: ref.watch(animeRepositoryProvider),
+    mangaRepository: ref.watch(mangaRepositoryProvider),
+    sessionRepository: ref.watch(sessionRepositoryProvider),
+    retentionPreferencesService: ref.watch(retentionPreferencesServiceProvider),
+    backupMapper: ref.watch(backupMapperProvider),
+    syncService: ref.watch(syncServiceProvider),
+    isar: IsarService.instance,
   );
 });
 final cloudDegradedProvider = StateProvider<bool>((ref) => false);

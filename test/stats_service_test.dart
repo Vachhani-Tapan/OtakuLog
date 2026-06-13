@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
+import 'package:otakulog/domain/entities/trackable_content.dart';
 import 'package:otakulog/domain/entities/user_session.dart';
 import 'package:otakulog/domain/services/stats_service.dart';
 
@@ -6,6 +8,7 @@ void main() {
   late StatsService statsService;
 
   setUp(() {
+    Intl.defaultLocale = 'en_US';
     statsService = StatsService();
   });
 
@@ -281,6 +284,51 @@ void main() {
           ),
         ];
         expect(statsService.calculateLongestStreak(sessions), 3);
+      });
+    });
+
+    group('Wrapped streak scoping', () {
+      test('weekly: 30-day streak capped to 7-day window', () {
+        final now = DateTime.now();
+        final allSessions = <UserSessionEntity>[];
+        for (var i = 0; i < 30; i++) {
+          final day = now.subtract(Duration(days: i));
+          allSessions.add(UserSessionEntity(
+            id: (i + 1).toString(),
+            contentId: 'a1',
+            contentType: SessionContentType.anime,
+            startTime: day.subtract(const Duration(minutes: 30)),
+            endTime: day,
+            unitsConsumed: 1,
+          ));
+        }
+        // Simulate the 7-day window that generateWeeklyWrapped uses
+        final periodStart = DateTime(now.year, now.month, now.day)
+            .subtract(const Duration(days: 6));
+        final filtered = allSessions
+            .where((s) => !s.endTime.isBefore(periodStart))
+            .toList();
+        expect(statsService.calculateStreak(allSessions), 30);
+        expect(statsService.calculateStreak(filtered), 7);
+      });
+
+      test('monthly: 60-day streak capped to 30-day window', () {
+        final now = DateTime.now();
+        final allSessions = <UserSessionEntity>[];
+        for (var i = 0; i < 60; i++) {
+          final day = now.subtract(Duration(days: i));
+          allSessions.add(UserSessionEntity(
+            id: (i + 1).toString(),
+            contentId: 'a1',
+            contentType: SessionContentType.anime,
+            startTime: day.subtract(const Duration(minutes: 30)),
+            endTime: day,
+            unitsConsumed: 1,
+          ));
+        }
+        final result =
+            statsService.generateMonthlyWrapped(allSessions, <TrackableContent>[]);
+        expect(result.streak, 30);
       });
     });
   });
