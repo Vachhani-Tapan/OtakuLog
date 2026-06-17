@@ -446,9 +446,11 @@ class RecommendationService {
     List<String> tagMatches,
     bool isExploratory,
   ) {
+    final verb = candidate.medium == SearchMedium.manga ? 'read' : 'watch';
+
     if (genreMatches.isNotEmpty) {
       final picked = genreMatches.take(2).join(' & ');
-      return 'Because you watch $picked';
+      return 'Because you $verb $picked';
     }
     if (tagMatches.isNotEmpty) {
       return 'Based on your recent ${tagMatches.first.toLowerCase()} picks';
